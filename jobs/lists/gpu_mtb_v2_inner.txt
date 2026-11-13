@@ -1,0 +1,5 @@
+mtb_v2_cv1_inner_f0 /home/user/zhangzhishuai/.local/share/mamba/envs/soymultires/bin/python scripts/03_model/train_mtboost.py fit --scenario cv1_inner --fold 0 --tag v2 --trials 15 --gpu_mem_gb 4.5
+mtb_v2_cv1_inner_f1 /home/user/zhangzhishuai/.local/share/mamba/envs/soymultires/bin/python scripts/03_model/train_mtboost.py fit --scenario cv1_inner --fold 1 --tag v2 --trials 15 --gpu_mem_gb 4.5
+mtb_v2_cv1_inner_f2 /home/user/zhangzhishuai/.local/share/mamba/envs/soymultires/bin/python scripts/03_model/train_mtboost.py fit --scenario cv1_inner --fold 2 --tag v2 --trials 15 --gpu_mem_gb 4.5
+mtb_v2_cv1_inner_f3 /home/user/zhangzhishuai/.local/share/mamba/envs/soymultires/bin/python scripts/03_model/train_mtboost.py fit --scenario cv1_inner --fold 3 --tag v2 --trials 15 --gpu_mem_gb 4.5
+mtb_v2_cv1_inner_f4 /home/user/zhangzhishuai/.local/share/mamba/envs/soymultires/bin/python scripts/03_model/train_mtboost.py fit --scenario cv1_inner --fold 4 --tag v2 --trials 15 --gpu_mem_gb 4.5

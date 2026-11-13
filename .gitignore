@@ -1,0 +1,13 @@
+# data, results and intermediate files are not part of the repository
+data/
+splits/
+runs/
+results/
+work/
+logs/
+figures/
+manuscript/
+submission/
+release/
+__pycache__/
+*.pyc

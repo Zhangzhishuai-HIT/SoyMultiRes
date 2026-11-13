@@ -1,0 +1,7 @@
+# One night-window submission per line (tab-separated): job name, list file (array size = its line count; skipped if empty),
+# sbatch resources, job script and its arguments. The submit script adds -p cu,fat --begin/--deadline.
+smr_bglr_big	jobs/lists/bglr_cv1_big.txt	-c 2 --mem=16G -t 01:50:00	jobs/slurm_bglr_array.sh jobs/lists/bglr_cv1_big.txt BayesB 12000 2000
+smr_bglr_small	jobs/lists/bglr_cv1_small.txt	-c 2 --mem=8G -t 01:00:00	jobs/slurm_bglr_array.sh jobs/lists/bglr_cv1_small.txt BayesB 12000 2000
+smr_lgbm	jobs/lists/lgbm_cv1_todo.txt	-c 8 --mem=8G -t 01:15:00	jobs/slurm_lgbm_array.sh jobs/lists/lgbm_cv1_todo.txt 15 1800
+smr_bglrmt	jobs/lists/bglrmt_cv1_todo.txt	-c 4 --mem=16G -t 05:00:00	jobs/slurm_bglrmt_array.sh jobs/lists/bglrmt_cv1_todo.txt 12000 2000
+smr_lgbmrs	jobs/lists/lgbm_reseed_todo.txt	-c 8 --mem=8G -t 00:45:00	jobs/slurm_lgbm_reseed_array.sh jobs/lists/lgbm_reseed_todo.txt 3

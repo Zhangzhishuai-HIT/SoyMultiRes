@@ -1,0 +1,2 @@
+gwas_emmax_mendel /home/user/zhangzhishuai/.local/share/mamba/envs/soymultires/bin/python scripts/04_analysis/gwas_emmax.py --traitset mendel --gpu_mem_gb 6
+gwas_emmax_stress /home/user/zhangzhishuai/.local/share/mamba/envs/soymultires/bin/python scripts/04_analysis/gwas_emmax.py --traitset stress --gpu_mem_gb 6
