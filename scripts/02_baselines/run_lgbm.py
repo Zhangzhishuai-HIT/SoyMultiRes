@@ -45,17 +45,6 @@ def main():
     parts.mkdir(parents=True, exist_ok=True)
     if a.collect:
         for t in T.TRAITS:
-            sf = [parts / f"{t}.{data.split_name(a.scenario, f)}.seeds.tsv.gz" for f in range(data.n_splits(a.scenario))]
-            fs1 = [parts / f"{t}.{data.split_name(a.scenario, f)}.tsv.gz" for f in range(data.n_splits(a.scenario))]
-            if all(f.exists() for f in sf + fs1):
-                key = ["acc", "batch", "fold"]
-                m = pd.concat([pd.read_csv(f, sep="\t", dtype={"acc": str}).merge(
-                    pd.read_csv(g, sep="\t", dtype={"acc": str}), on=key) for f, g in zip(fs1, sf)])
-                sc = ["pred"] + [c for c in m.columns if c.startswith("pred_s")]
-                o2 = data.RUNS / a.scenario / f"lightgbm_avg{len(sc)}"
-                o2.mkdir(parents=True, exist_ok=True)
-                m[["acc", "batch", "score", "resistant", "fold"]].assign(pred=m[sc].mean(1)).to_csv(
-                    o2 / f"{t}.tsv.gz", sep="\t", index=False)
             units = [f for f in range(data.n_splits(a.scenario))
                      if a.scenario != "cv3" or t in data.cv3_traits_of(f)]
             if not units:
@@ -65,7 +54,17 @@ def main():
             if not units:
                 print(t, "all units skipped")
                 continue
+            sf = [parts / f"{t}.{data.split_name(a.scenario, f)}.seeds.tsv.gz" for f in units]
             fs = [parts / f"{t}.{data.split_name(a.scenario, f)}.tsv.gz" for f in units]
+            if all(f.exists() for f in sf + fs):     # mean over the tuned refit and the extra seeds
+                key = ["acc", "batch", "fold"]
+                m = pd.concat([pd.read_csv(f, sep="\t", dtype={"acc": str}).merge(
+                    pd.read_csv(g, sep="\t", dtype={"acc": str}), on=key) for f, g in zip(fs, sf)])
+                sc = ["pred"] + [c for c in m.columns if c.startswith("pred_s")]
+                o2 = data.RUNS / a.scenario / f"lightgbm_avg{len(sc)}"
+                o2.mkdir(parents=True, exist_ok=True)
+                m[["acc", "batch", "score", "resistant", "fold"]].assign(pred=m[sc].mean(1)).to_csv(
+                    o2 / f"{t}.tsv.gz", sep="\t", index=False)
             if all(f.exists() for f in fs):
                 pd.concat([pd.read_csv(f, sep="\t", dtype={"acc": str}) for f in fs]).to_csv(out / f"{t}.tsv.gz", sep="\t", index=False)
                 print(t, "collected")

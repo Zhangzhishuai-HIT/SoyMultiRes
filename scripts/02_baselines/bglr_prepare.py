@@ -98,6 +98,8 @@ def main():
             if missing:
                 print(t, f"{missing} folds missing")
                 continue
+            if not parts:                  # cv3: trait not in any held-out experiment
+                continue
             pd.concat(parts, ignore_index=True).to_csv(out / f"{t}.tsv.gz", sep="\t", index=False)
             print(t, "collected")
 
