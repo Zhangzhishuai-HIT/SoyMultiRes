@@ -27,30 +27,44 @@ for _d in ("~/.local/share/fonts", "~/.fonts"):
     for _f in glob.glob(os.path.join(os.path.expanduser(_d), "**", "[Tt]imes*.[Tt][Tt][Ff]"), recursive=True):
         font_manager.fontManager.addfont(_f)
 
-INK, INK2, MUTED, LIGHT, GRID, BAND = "#1a1a1a", "#4d4d4d", "#8c8c8c", "#bdbdbd", "#e8e8e8", "#f4f4f2"
+INK, INK2, MUTED, LIGHT, GRID, BAND = "#222222", "#4a4a4a", "#8c8c8c", "#c8c8c8", "#ebebeb", "#f5f5f3"
+PANEL_BG = "#f7f8fa"
 
-# model -> (label, colour, marker); hue = model family, every model has its own marker shape
-# model -> (label, colour, marker)
+# Palette (2026-11-15, user: figure colours at the level of Cell/Nature/Science). Nature-style hues adjusted to pass
+# the dataviz palette validator (lightness band, chroma floor, CVD and normal-vision separation of adjacent / all
+# pairs). One meaning per colour family across all figures.
+RED, NAVY, TEAL, OCHRE = "#E64B35", "#2F4E9E", "#00A087", "#D9A400"
+# model -> (label, colour, marker, filled); the proposed model in red, the comparators in navy/ochre/teal and greys
 MODEL = {
-    "mtboost_v2_final": ("MT-Boost", "#1d4f91", "o"),
-    "best_single_avg4": ("Best single-trait model", "#111111", "D"),
-    "lightgbm_avg4": ("LightGBM", "#e66101", "^"),
-    "bayesb": ("BayesB", "#8e6bbf", "P"),
-    "bglr_mt": ("Multi-trait GBLUP", "#1b9e77", "h"),
-    "gblup": ("GBLUP", "#6b6b6b", "s"),
-    "mtboost_v2_noshare4": ("MT-Boost without shared trees", "#7fa7dc", "o"),
+    "mtboost_v2_final": ("MT-Boost", RED, "o", True),
+    "mtboost_v2_noshare4": ("MT-Boost without shared trees", RED, "o", False),
+    "mtboost_v2_noshare2": ("MT-Boost without shared trees", RED, "o", False),
+    "best_single_avg4": ("Best single-trait model", NAVY, "D", True),
+    "lightgbm_avg4": ("LightGBM", OCHRE, "^", True),
+    "bglr_mt": ("Multi-trait GBLUP", TEAL, "h", True),
+    "bayesb": ("BayesB", "#9a9a9a", "P", True),
+    "gblup": ("GBLUP", "#5e5e5e", "s", True),
+    "mtboost_v2_gblup": ("GBLUP", "#5e5e5e", "s", True),
 }
-CLASS_COLOUR = {"concordant": "#1d4f91", "trade-off": "#e66101", "race-differential": "#8e6bbf",
-                "unresolved": "#bdbdbd", "specific": "#e8e8e8"}
+# stress categories (adjacent-pair validated in this order: CVD dE >= 11.6, normal-vision dE >= 20.3)
+CATEGORY = {"SCN": "#2F4E9E", "Phytophthora": "#E64B35", "fungi_oomycetes": "#00A087", "bacteria": "#D9A400",
+            "virus": "#C2185B", "chewing_insects": "#7B6FC4", "sucking_insects": "#4DBBD5", "abiotic": "#EE8866"}
+CATEGORY_LABEL = {"SCN": "SCN", "Phytophthora": "Phytophthora", "fungi_oomycetes": "Other fungi",
+                  "bacteria": "Bacteria", "virus": "Viruses", "chewing_insects": "Chewing insects",
+                  "sucking_insects": "Sucking insects", "abiotic": "Abiotic"}
+CLASS_COLOUR = {"concordant": NAVY, "race-differential": RED, "trade-off": OCHRE, "unresolved": "#c8c8c8",
+                "specific": "#e6e6e6"}
+DIRECTION = {"+": NAVY, "-": RED, "0": "#d9d9d9"}
+DIVERGING = ["#1b2f63", NAVY, "#f4f4f4", RED, "#9e2a17"]
 
 
 def setup():
     plt.rcParams.update({
         "font.family": [FONT, "STIXGeneral", "DejaVu Serif"], "font.size": 7, "axes.titlesize": 7,
         "axes.labelsize": 7, "xtick.labelsize": 6.5, "ytick.labelsize": 6.5, "legend.fontsize": 6.5,
-        "axes.linewidth": 0.5, "xtick.major.width": 0.5, "ytick.major.width": 0.5, "xtick.major.size": 2.5,
-        "ytick.major.size": 2.5, "lines.linewidth": 0.8, "axes.spines.top": False, "axes.spines.right": False,
-        "pdf.fonttype": 42, "ps.fonttype": 42, "savefig.dpi": 600, "axes.edgecolor": INK, "text.color": INK,
+        "axes.linewidth": 0.6, "xtick.major.width": 0.6, "ytick.major.width": 0.6, "xtick.major.size": 2.5,
+        "ytick.major.size": 2.5, "xtick.major.pad": 2, "ytick.major.pad": 2, "axes.labelpad": 3, "lines.linewidth": 0.8, "axes.spines.top": False, "axes.spines.right": False,
+        "pdf.fonttype": 42, "ps.fonttype": 42, "savefig.dpi": 600, "axes.edgecolor": "#333333", "text.color": INK,
         "axes.labelcolor": INK, "xtick.color": INK, "ytick.color": INK, "legend.frameon": False,
         # formulas in Times New Roman as well
         "mathtext.fontset": "custom", "mathtext.rm": FONT, "mathtext.it": f"{FONT}:italic",
@@ -65,4 +79,4 @@ def save(fig, name):
 
 
 def panel(ax, letter, x=-0.12, y=1.04):
-    ax.text(x, y, letter, transform=ax.transAxes, fontsize=9, fontweight="bold", va="bottom", ha="left")
+    ax.text(x, y, letter, transform=ax.transAxes, fontsize=10, fontweight="bold", va="bottom", ha="left")

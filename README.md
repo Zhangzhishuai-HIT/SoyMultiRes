@@ -1,7 +1,7 @@
-# SoyMultiRes: joint modelling of 32 stress descriptors of the USDA soybean collection
+# SoyMultiRes: MT-Boost, joint modelling of 32 soybean stress traits
 
-Code for the article "Joint modelling of 32 stress descriptors of the USDA soybean collection maps shared and
-race-differential resistance loci and multi-resistant accessions". Input data and results are not included; all
+Code for the article "MT-Boost: joint modelling of 32 soybean stress traits reveals shared and race-differential
+resistance loci". Input data and results are not included; all
 inputs are public (see Data).
 
 ## Model
