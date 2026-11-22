@@ -1,0 +1,2 @@
+cv1 bglr_mt gblup primary
+cv1 bglr_mt gblup other

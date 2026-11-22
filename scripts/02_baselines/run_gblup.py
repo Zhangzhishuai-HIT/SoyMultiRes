@@ -1,10 +1,12 @@
 """Step 4: single-trait GBLUP (VanRaden kernel of step 2, REML via the copied HapGAM SpectralREML).
 
-usage: python run_gblup.py --scenario cv1|cv3 --traits NEMATCYST_3 [...] [--threads 8]
+usage: python run_gblup.py --scenario cv1 --traits NEMATCYST_3 [...] [--threads 8]
 
 cv1 (考法一): the five frozen folds of splits/folds.tsv. For a single-trait model 考法二 is identical to cv1.
-cv3 (考法三): each hold-out batch of splits/cv3_batches.tsv in which the trait was recorded; test = the trait's records
-in that batch; training = the trait's other records, minus every record of the test accessions (column fold = unit).
+cv3 (held-out experiments) is not used for the article: there, GBLUP is the GBLUP start of TraitBoost
+(train_mtboost.py start --scenario cv3; runs/cv3/mtboost_v2_gblup), whose training sets follow data.split_targets
+(all accessions of the held-out experiment removed). The cv3 branch below removes only the accessions scored for the
+trait in that experiment and is kept for reference only; it is refused unless --allow_old_cv3 is given.
 Writes runs/<scenario>/gblup/<trait>.tsv.gz (record-level test predictions: acc, batch, fold, score, resistant, pred)
 and <trait>.json (per-fold n, h2, delta, seconds, code hash).
 """
@@ -32,9 +34,13 @@ CODE = hashlib.sha256((Path(__file__).read_bytes() + (ROOT / "src/soymultires/da
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--scenario", default="cv1", choices=["cv1", "cv3"])
+    ap.add_argument("--allow_old_cv3", action="store_true", help="run the cv3 branch, which differs from the article's design")
     ap.add_argument("--traits", nargs="+", required=True)
     ap.add_argument("--threads", type=int, default=8)
     a = ap.parse_args()
+    if a.scenario == "cv3" and not a.allow_old_cv3:
+        sys.exit("cv3: the held-out GBLUP of the article is the GBLUP start of TraitBoost (train_mtboost.py start); "
+                 "use --allow_old_cv3 to run this differing branch")
     torch.set_num_threads(a.threads)
     long = data.pheno_long()
     fold_of = data.folds().cv1_fold

@@ -3,7 +3,7 @@
 
 Figures are drawn at their final printed size (Springer double column 174 mm, single column 84 mm)
 with 7-pt text and 0.5-pt axes, saved as vector PDF (fonts embedded) and as 600-dpi PNG.
-The key-model colours (HapGAM-E, EGBLUP, BayesB, LightGBM, GBLUP) were checked for separation
+The key-model colours were checked for separation
 under simulated protanopia/deuteranopia (worst pair OKLab dE >= 11); within a model family the
 hue is shared and the marker shape differs, so identity never depends on colour alone.
 """
@@ -36,10 +36,12 @@ PANEL_BG = "#f7f8fa"
 RED, NAVY, TEAL, OCHRE = "#E64B35", "#2F4E9E", "#00A087", "#D9A400"
 # model -> (label, colour, marker, filled); the proposed model in red, the comparators in navy/ochre/teal and greys
 MODEL = {
-    "mtboost_v2_final": ("MT-Boost", RED, "o", True),
-    "mtboost_v2_noshare4": ("MT-Boost without shared trees", RED, "o", False),
-    "mtboost_v2_noshare2": ("MT-Boost without shared trees", RED, "o", False),
+    "mtboost_v2_final": ("TraitBoost", RED, "o", True),
+    "mtboost_v2_noshare4": ("TraitBoost without shared trees", RED, "o", False),
+    "mtboost_v2_share4": ("Chosen option alone", RED, "v", False),
     "best_single_avg4": ("Best single-trait model", NAVY, "D", True),
+    "ens_gblup_lightgbm": ("Mean of GBLUP and LightGBM", OCHRE, "s", False),
+    "ens_lightgbm_noshare": ("Tree ensemble", OCHRE, "D", False),          # mean of LightGBM and TraitBoost without shared trees (defined in the legend)
     "lightgbm_avg4": ("LightGBM", OCHRE, "^", True),
     "bglr_mt": ("Multi-trait GBLUP", TEAL, "h", True),
     "bayesb": ("BayesB", "#9a9a9a", "P", True),
@@ -49,26 +51,32 @@ MODEL = {
 # stress categories (adjacent-pair validated in this order: CVD dE >= 11.6, normal-vision dE >= 20.3)
 CATEGORY = {"SCN": "#2F4E9E", "Phytophthora": "#E64B35", "fungi_oomycetes": "#00A087", "bacteria": "#D9A400",
             "virus": "#C2185B", "chewing_insects": "#7B6FC4", "sucking_insects": "#4DBBD5", "abiotic": "#EE8866"}
-CATEGORY_LABEL = {"SCN": "SCN", "Phytophthora": "Phytophthora", "fungi_oomycetes": "Other fungi",
+# short labels for tight places (the genus name in italics) and the names of Table 1
+CATEGORY_LABEL = {"SCN": "SCN", "Phytophthora": r"$\it{P.\ sojae}$", "fungi_oomycetes": "Other fungi",
                   "bacteria": "Bacteria", "virus": "Viruses", "chewing_insects": "Chewing insects",
                   "sucking_insects": "Sucking insects", "abiotic": "Abiotic"}
-CLASS_COLOUR = {"concordant": NAVY, "race-differential": RED, "trade-off": OCHRE, "unresolved": "#c8c8c8",
-                "specific": "#e6e6e6"}
+CATEGORY_FULL = {"SCN": "Soybean cyst nematode", "Phytophthora": r"$\it{Phytophthora\ sojae}$",
+                 "fungi_oomycetes": "Other fungi and oomycetes", "bacteria": "Bacteria", "virus": "Viruses",
+                 "chewing_insects": "Chewing insects", "sucking_insects": "Sucking insects", "abiotic": "Abiotic stresses"}
+CLASS_COLOUR = {"concordant": NAVY, "race-differential": RED, "trade-off": OCHRE, "unresolved": "#9a9a9a",
+                "specific": "white"}
+CLASS_LABEL = {"concordant": "Concordant", "race-differential": "Race-differential",
+               "trade-off": "Opposite between stresses", "unresolved": "Unresolved", "specific": "One trait"}
 DIRECTION = {"+": NAVY, "-": RED, "0": "#d9d9d9"}
 DIVERGING = ["#1b2f63", NAVY, "#f4f4f4", RED, "#9e2a17"]
 
 
 def setup():
     plt.rcParams.update({
-        "font.family": [FONT, "STIXGeneral", "DejaVu Serif"], "font.size": 7, "axes.titlesize": 7,
-        "axes.labelsize": 7, "xtick.labelsize": 6.5, "ytick.labelsize": 6.5, "legend.fontsize": 6.5,
+        "font.family": [FONT, "STIXGeneral", "DejaVu Serif"], "font.size": 8, "axes.titlesize": 8,
+        "axes.labelsize": 8, "xtick.labelsize": 8, "ytick.labelsize": 8, "legend.fontsize": 8,
         "axes.linewidth": 0.6, "xtick.major.width": 0.6, "ytick.major.width": 0.6, "xtick.major.size": 2.5,
         "ytick.major.size": 2.5, "xtick.major.pad": 2, "ytick.major.pad": 2, "axes.labelpad": 3, "lines.linewidth": 0.8, "axes.spines.top": False, "axes.spines.right": False,
         "pdf.fonttype": 42, "ps.fonttype": 42, "savefig.dpi": 600, "axes.edgecolor": "#333333", "text.color": INK,
         "axes.labelcolor": INK, "xtick.color": INK, "ytick.color": INK, "legend.frameon": False,
         # formulas in Times New Roman as well
         "mathtext.fontset": "custom", "mathtext.rm": FONT, "mathtext.it": f"{FONT}:italic",
-        "mathtext.bf": f"{FONT}:bold"})
+        "mathtext.bf": f"{FONT}:bold", "mathtext.cal": f"{FONT}:italic", "mathtext.sf": FONT, "mathtext.tt": FONT})
 
 
 def save(fig, name):

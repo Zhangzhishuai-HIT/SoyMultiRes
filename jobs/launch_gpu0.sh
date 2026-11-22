@@ -1,7 +1,7 @@
 #!/bin/bash
 # Launch a command on gpu10, GPU 0 ONLY (user rule since 2026-11-09), in the background, low priority.
 # Launched only if GPU 0 has at least NEED_MB + HEADROOM MiB free (HEADROOM env var, default 4096; the user allowed a
-# second MT-Boost process with HEADROOM=2048 on 2026-11-12); never touches other processes.
+# second TraitBoost process with HEADROOM=2048 on 2026-11-12); never touches other processes.
 # The card is selected by UUID, never by ordinal: when a card drops off the bus (GPUs 0 and 1 did on 2026-11-11 14:48
 # after NVSwitch link faults) CUDA renumbers the rest, and CUDA_VISIBLE_DEVICES=0 would silently land on another card.
 # With the UUID a missing card means no device (safe failure).

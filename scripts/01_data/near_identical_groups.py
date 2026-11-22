@@ -1,7 +1,7 @@
 """Near-identical accessions (genebank duplicates / sub-lines) among genotyped accessions with >=1 stress trait.
 
 usage: python near_identical_groups.py <dosage.npy> <samples.tsv> <accessions.tsv> <out_dir> [threads]
-Identity = 1 - sum((g_i - g_j)^2) / (4 m) on 0/1/2 dosages with missing calls (0.02%) set to the allele mean;
+Identity = 1 - sum((g_i - g_j)^2) / (4 m) on 0/1/2 dosages with missing calls (0.03%) set to the allele mean;
 for these almost fully homozygous accessions this equals the share of identical genotype calls (IBS).
 Accessions linked by identity >= 0.99 are grouped (connected components); the split step keeps each group in
 one fold. Memory ~5 GB for 17,150 accessions.

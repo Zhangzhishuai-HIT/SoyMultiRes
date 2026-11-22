@@ -8,6 +8,10 @@ usage: python -I bglr_mt_prepare.py prepare --scenario cv1     -> work/bglr_mt/<
 Each directory: Y.tsv (rows = training accessions with a record of a category trait, then the eval accessions with a
 record, all NA; targets exactly as the other baselines, data.split_targets), rows.txt (rows of geno/grm.f32.npy),
 meta.json (GRM file, header offset, size), test_records_<trait>.tsv.
+Held-out experiments: all accessions of the held-out experiment leave the training set, so a trait of the category
+can be left without training records or with a single class; such traits are not part of the model of that split,
+and a category is fitted for a split only if one of its remaining traits has test records. --split restricts
+prepare to one split.
 """
 import argparse
 import json
@@ -38,6 +42,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("action", choices=["prepare", "lists", "collect"])
     ap.add_argument("--scenario", default="cv1")
+    ap.add_argument("--split", type=int, default=None, help="prepare this split only")
     a = ap.parse_args()
     base = ROOT / "work/bglr_mt" / a.scenario
     if a.action == "prepare":
@@ -46,12 +51,20 @@ def main():
         pos = {v: i for i, v in enumerate(data.samples())}
         gfile = data.P / "geno/grm.f32.npy"
         meta = {"grm": str(gfile), "offset": npy_offset(gfile), "n_all": len(pos)}
-        for f in range(5):
+        for f in range(data.n_splits(a.scenario)):
+            if a.split is not None and f != a.split:
+                continue
             sp = data.split_name(a.scenario, f)
             for cat, traits in CAT.items():
+                tg = {t: data.split_targets(long[long.trait == t], t, a.scenario, f, fo) for t in traits}
+                dropped = [t for t in traits if len(np.unique(np.asarray(tg[t].y_train, dtype=float))) < 2]
+                traits = [t for t in traits if t not in dropped]         # no training record or a single class
+                if not any(len(tg[t].test_records) for t in traits):     # held-out experiments: no test record of this category
+                    continue
+                if dropped:
+                    print(sp, cat, "without", ",".join(dropped), "(no training records or one class)")
                 d = base / sp / cat
                 d.mkdir(parents=True, exist_ok=True)
-                tg = {t: data.split_targets(long[long.trait == t], t, a.scenario, f, fo) for t in traits}
                 tr = sorted(set().union(*[set(tg[t].train_acc) for t in traits]))
                 te = sorted(set().union(*[set(tg[t].test_acc) for t in traits]) - set(tr))
                 Y = pd.DataFrame(np.nan, index=tr + te, columns=traits)
@@ -78,16 +91,23 @@ def main():
         for cat, traits in CAT.items():
             for t in traits:
                 parts, missing = [], 0
-                for f in range(5):
+                for f in range(data.n_splits(a.scenario)):
                     d = base / data.split_name(a.scenario, f) / cat
+                    if not d.exists():                       # held-out experiments: category without test records
+                        continue
                     if not (d / "pred.tsv").exists():
                         missing += 1
                         continue
                     P = pd.read_csv(d / "pred.tsv", sep="\t", index_col=0)
+                    if t not in P.columns:                   # trait without training records in this split
+                        continue
                     rec = pd.read_csv(d / f"test_records_{t}.tsv", sep="\t", dtype={"acc": str})
-                    parts.append(rec.assign(pred=rec.acc.map(P[t])))
+                    if len(rec):
+                        parts.append(rec.assign(pred=rec.acc.map(P[t])))
                 if missing:
                     print(t, missing, "folds missing")
+                    continue
+                if not parts:
                     continue
                 pd.concat(parts, ignore_index=True).to_csv(out / f"{t}.tsv.gz", sep="\t", index=False)
                 print(t, "collected")

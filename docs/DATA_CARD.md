@@ -11,10 +11,10 @@ VCF sample list (`down_data/LIS_glycine_max_diversity/Wm82.gnm2.div.Song_Hyten_2
 - BRNSTEMROT U = susceptible in preliminary field tests (coded with S); PMV U = field-resistant, not confirmed (between S and R); PHYTOROT/PYTHIUMROT H = heterogeneous; NSCANKER/HIGHTEMP I = intermediate; BPMV/SALTREACT T = tolerant.
 - `resistant` = GRIN resistant classes for categorical traits; for numeric traits the least-damaged 10% of an evaluation batch (ties included; e.g. FROGEYE2 score 1 = 'resistant with no lesions' covers 66%).
 - Records of the same accession in the same batch are averaged; batches stay separate in `pheno_long.tsv.gz`.
-- RUST_TAN: numeric 2-5; direction assumed 'higher = more severe' (to be confirmed from the GRIN method page).
+- RUST_TAN: numeric 1-5, higher = more severe (GRIN method SOYBEAN.RUST.RF.2004, saved as definitions_20261111/m492634.html: 1 = no visible symptoms, 5 = severe infection); negated for the models.
 - Mendelian calibration traits use HapGAM's binary codings (flower purple vs white, pubescence tawny vs gray, indeterminate vs determinate, seed coat pigmented vs yellow) and maturity group 000 = -2 ... X = 10.
 
-## 32 stress traits
+## 33 stress traits
 
 | Trait | Short | Category | Accessions | Batches | Levels (low → high resistance) | Resistant share |
 |---|---|---|---:|---:|---|---:|
@@ -28,6 +28,7 @@ VCF sample list (`down_data/LIS_glycine_max_diversity/Wm82.gnm2.div.Song_Hyten_2
 | PHYTOROT_4 | PR4 | Phytophthora | 1,469 | 7 | S < H < R | 0.485 |
 | PHYTOROT_5 | PR5 | Phytophthora | 790 | 6 | S < H < R | 0.424 |
 | PHYTOROT_7 | PR7 | Phytophthora | 2,968 | 9 | S < H < R | 0.457 |
+| PHYTOROT_10 | PR10 | Phytophthora | 622 | 1 | S < H < R | 0.360 |
 | PHYTOROT_12 | PR12 | Phytophthora | 639 | 1 | S < H < R | 0.083 |
 | PHYTOROT_17 | PR17 | Phytophthora | 2,226 | 3 | S < H < R | 0.315 |
 | PHYTOROT_20 | PR20 | Phytophthora | 651 | 1 | S < H < R | 0.098 |

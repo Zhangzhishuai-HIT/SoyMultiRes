@@ -1,0 +1,10 @@
+/home/user/zhangzhishuai/myhermes/2080/SoyMultiRes/work/bglr_mt/cv3/unit7/fungi_oomycetes
+/home/user/zhangzhishuai/myhermes/2080/SoyMultiRes/work/bglr_mt/cv3/unit9/Phytophthora
+/home/user/zhangzhishuai/myhermes/2080/SoyMultiRes/work/bglr_mt/cv3/unit6/Phytophthora
+/home/user/zhangzhishuai/myhermes/2080/SoyMultiRes/work/bglr_mt/cv3/unit10/Phytophthora
+/home/user/zhangzhishuai/myhermes/2080/SoyMultiRes/work/bglr_mt/cv3/unit11/Phytophthora
+/home/user/zhangzhishuai/myhermes/2080/SoyMultiRes/work/bglr_mt/cv3/unit12/chewing_insects
+/home/user/zhangzhishuai/myhermes/2080/SoyMultiRes/work/bglr_mt/cv3/unit6/chewing_insects
+/home/user/zhangzhishuai/myhermes/2080/SoyMultiRes/work/bglr_mt/cv3/unit2/sucking_insects
+/home/user/zhangzhishuai/myhermes/2080/SoyMultiRes/work/bglr_mt/cv3/unit4/abiotic
+/home/user/zhangzhishuai/myhermes/2080/SoyMultiRes/work/bglr_mt/cv3/unit0/virus

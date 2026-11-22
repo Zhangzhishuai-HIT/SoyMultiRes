@@ -1,21 +1,39 @@
-"""Step 6 (revised 2026-11-12): MT-Boost (src/soymultires/mtboost.py) on the shared scenarios, on gpu10 card 0.
+"""TraitBoost (working name in the code: mtboost; model in src/soymultires/mtboost.py): tuning, per-trait choice,
+refits and split gains.
 
 usage:
-  python train_mtboost.py fit --scenario cv1_inner --fold 0 --tag v1 [--trials 15] [--config '{...}']
-  python train_mtboost.py collect --scenario cv1_inner --tag v1   -> runs/<scenario>/mtboost_<tag>{,_noshare,_gblup}/
-Per split:
-  1. targets exactly as the baselines (data.split_targets); rows = fit accessions with any record, eval rows = the
-     eval accessions (cv1: the outer test fold; cv1_inner: inner fold f) -- the eval rows are used only at the end;
-  2. GBLUP start, cross-fitted inside the fit set by inner folds (each fit row predicted by a GBLUP fitted on the
-     other parts; eval rows by a GBLUP fitted on all fit rows); cached in work/mtboost_start/;
-  3. tuning as for the LightGBM baseline: Optuna (TPE, seed 20261112), --trials trials, validation on the three inner
-     folds data.tuning_inner_folds(scenario, f); per trial and fold a shared phase, then own trees from three
-     candidate starts per trait (0, S*/2, S* rounds of shared trees, S* = best of the fold-averaged shared curve);
-     every trait takes the (start, own rounds) with the best fold-averaged validation r; trial value = mean over traits;
-  4. refit on all fit rows with the best trial's settings and each trait's (S_t, P_t) x 1.1 (as LightGBM's rounds);
-     predictions for the eval rows; ablations from the same refit: GBLUP start only, and own trees without sharing
-     (start 0, the best own rounds of that candidate); per-trait gain of every SNP (shared / own trees).
-Outputs: runs/<scenario>/mtboost_dev/<tag>/<split>.{json,tsv.gz,imp.npz}.
+  python train_mtboost.py start   --scenario cv1 --fold 0                       GBLUP predictions used as a start (CPU)
+  python train_mtboost.py fit     --scenario cv1 --fold 0 --tag v2 [--trials 15]   tuning, choice and refits (GPU)
+  python train_mtboost.py reseed  --scenario cv1 --fold 0 --tag v2 --first_seed 2 --seeds 2    further refits
+  python train_mtboost.py reseed  --scenario all --fold 0 --tag final --first_seed 0 --seeds 2  split gains of the
+                                                                                 model fitted to all accessions
+  python train_mtboost.py start   --scenario cv1 --fold 0 --eval_all          GBLUP predictions of every trait for all
+                                                                            test accessions (CPU; used by --dump_full)
+  python train_mtboost.py reseed  --scenario cv1 --fold 0 --tag v2 --first_seed 0 --seeds 2 --dump_full
+                                                             predictions of all traits for the test accessions (<split>_full.npz)
+  python train_mtboost.py collect --scenario cv1 --tag v2      -> runs/<scenario>/mtboost_<tag>{_final,_noshare4,_gblup,...}/
+Scenarios: cv1_inner, cv1 (new accessions), cv3 (held-out experiments), all (all accessions; --traitset mendel for the
+five calibration traits).
+Per split (fit):
+  1. targets as for the other models (data.split_targets); rows = training accessions with any record; the test rows
+     are used only at the end;
+  2. GBLUP predictions of every trait: training rows cross-validated over the inner folds (each row predicted by a
+     GBLUP fitted without its fold), test rows by a GBLUP fitted to all training rows; cached in work/mtboost_start/;
+  3. tuning: Optuna (TPE, seed --optuna_seed, default 20261112), --trials settings, validation on the three inner folds
+     data.tuning_inner_folds(scenario, f). For a setting, shared trees are grown from zero, and S* is the number of
+     shared rounds with the highest fold-averaged validation correlation of a trait. Every trait has three options:
+     trait-specific trees from zero; trait-specific trees after S* rounds of shared trees; trait-specific trees
+     starting from the GBLUP predictions (no shared trees). The option and number of rounds with the highest
+     fold-averaged validation correlation are chosen; the best option without shared trees is recorded as well.
+     The value of a setting is the mean over the traits; every trait uses the setting with its highest correlation;
+  4. refits on all training rows with the chosen numbers of rounds x 1.1, for the chosen option and for the best
+     option without shared trees, each with --seeds random seeds; predictions for the test rows. The prediction of
+     the model (collect: mtboost_<tag>_final) is the mean of the two options with two seeds each; mtboost_<tag>_gblup
+     holds the GBLUP predictions of step 2;
+  5. split gain of every SNP for every trait: the gain of the trait in the splits of the rounds that its prediction
+     uses (shared: first S_t rounds; trait-specific: P_t rounds; option without shared trees: its rounds), mean over
+     the refits (importance.npz, key "model").
+Outputs: runs/<scenario>/mtboost_dev/<tag>/<split>.{json,tsv.gz}; runs/all/mtboost_<tag>[_mendel]/.
 """
 import argparse
 import hashlib
@@ -42,7 +60,7 @@ MENDEL_TRAITS = ["flower_purple", "pubescence_tawny", "indeterminate", "seedcoat
 
 
 def use_traitset(name):
-    """stress: the 32 stress traits (pheno_long). mendel: the 5 Mendelian traits of the known-gene calibration
+    """stress: the 33 stress traits (pheno_long). mendel: the 5 Mendelian traits of the known-gene calibration
     (data/processed/mendel_matrix.tsv.gz), one shared-tree group. Returns the long table of the set."""
     global TRAITS, CATEGORY
     if name == "stress":
@@ -86,7 +104,12 @@ class SplitData:
         for j, t in enumerate(TRAITS):
             ft = self.tg[t]
             Y[[rr[a] for a in ft.train_acc], j] = ft.y_train
-        self.mu, self.sd = np.nanmean(Y, 0), np.nanstd(Y, 0) + 1e-8
+        with np.errstate(all="ignore"):
+            mu, sd = np.nanmean(Y, 0), np.nanstd(Y, 0)
+        # a trait without training records (possible in a held-out experiment) gets mean 0: its start must be finite,
+        # because a non-finite gradient would make the gains of every trait non-finite (mtboost.grow sums over traits)
+        self.mu = np.where(np.isfinite(mu), mu, 0.0)
+        self.sd = np.where(np.isfinite(sd), sd, 0.0) + 1e-8
         self.Yraw = Y
         Ys = (Y - self.mu) / self.sd
         self.M = torch.as_tensor(np.isfinite(Ys), device=device)
@@ -111,9 +134,9 @@ class SplitData:
         cache = ROOT / "work/mtboost_start" / f"{self.scenario}_{nm}{'' if TRAITS[0] in T.TRAITS else '_mendel'}.npz"
         if cache.exists():
             z = np.load(cache, allow_pickle=True)
-            if list(z["R"]) == list(self.R) and list(z["E"]) == list(self.E):
+            if list(z["R"]) == list(self.R) and list(z["E"]) == list(self.E) and z["S0"].shape[1] == len(TRAITS):
                 log(f"GBLUP start from {cache.name}")
-                return z["S0"], z["S0e"]
+                return self.finite(z["S0"]), self.finite(z["S0e"])
         t0 = time.time()
         Kmm = data.grm(mmap=True)
         pos = {v: i for i, v in enumerate(data.samples())}
@@ -146,7 +169,46 @@ class SplitData:
         cache.parent.mkdir(parents=True, exist_ok=True)
         np.savez(cache, R=self.R, E=self.E, S0=S0, S0e=S0e)
         log(f"GBLUP start computed in {time.time() - t0:.0f}s")
-        return S0, S0e
+        return self.finite(S0), self.finite(S0e)
+
+    def finite(self, S):
+        """Starts of traits without training records (mean NaN in older caches) are set to the (finite) mean."""
+        return np.where(np.isfinite(S), S, self.mu[None, :])
+
+    def gblup_eval_all(self, log):
+        """GBLUP predictions of every trait for ALL eval rows (raw scale), from a GBLUP fitted to all training
+        accessions of the trait. gblup_start predicts only the eval rows scored for a trait (the others keep the
+        training mean), which is all the evaluation needs; the predictions of all traits for all test accessions
+        (--dump_full) need the GBLUP start of every accession. Cached in work/mtboost_start/<split>_evalall.npz."""
+        nm = "all" if self.scenario == "all" else data.split_name(self.scenario, self.f)
+        cache = ROOT / "work/mtboost_start" / f"{self.scenario}_{nm}_evalall.npz"
+        if cache.exists():
+            z = np.load(cache, allow_pickle=True)
+            if list(z["R"]) == list(self.R) and list(z["E"]) == list(self.E) and z["S0e"].shape[1] == len(TRAITS):
+                log(f"GBLUP start of all eval rows from {cache.name}")
+                return self.finite(z["S0e"])
+        t0 = time.time()
+        Kmm = data.grm(mmap=True)
+        pos = {v: i for i, v in enumerate(data.samples())}
+        g_e = np.array([pos[a] for a in self.E])
+        S0e = np.tile(self.mu, (len(self.E), 1))
+        for j, t in enumerate(TRAITS):
+            ft = self.tg[t]
+            tr = np.array(ft.train_acc)
+            if len(tr) == 0:
+                continue
+            g_tr = np.array([pos[a] for a in tr])
+            K = torch.from_numpy(np.asarray(Kmm[np.ix_(g_tr, g_tr)], dtype=np.float64)).to(self.dev)
+            m = SpectralREML().fit(K, torch.tensor(ft.y_train, dtype=torch.float64, device=self.dev))
+            del K
+            Kx = torch.from_numpy(np.asarray(Kmm[np.ix_(g_e, g_tr)], dtype=np.float64)).to(self.dev)
+            S0e[:, j] = m.predict(Kx).cpu().numpy()
+            del m, Kx
+            log(f"  {t}: {len(tr)} training accessions")
+        cache.parent.mkdir(parents=True, exist_ok=True)
+        np.savez(cache, R=self.R, E=self.E, S0e=S0e)
+        log(f"GBLUP start of all eval rows computed in {time.time() - t0:.0f}s")
+        return S0e
 
 
 def avg_curves(curve_list):
@@ -158,9 +220,10 @@ def avg_curves(curve_list):
 
 def trial_eval(cfg: BoostConfig, sd: SplitData, eng: Engine, S0s, log):
     """Validation of one setting on the three tuning folds. Shared trees are grown from a zero start; every trait then
-    has four options: own trees from the zero start after 0, S*/2 or S* rounds of shared trees (S* = best of the
-    fold-averaged shared curve), or own trees from the GBLUP start without sharing. Returns (value, choice):
-    per-trait best option (start, S_t, P_t, r) and the best option without sharing (start0, P0_t, r0)."""
+    has three options: trait-specific trees from the zero start after 0 or S* rounds of shared trees (S* = best of the
+    fold-averaged validation curve of the shared trees), or trait-specific trees from the GBLUP start without shared
+    trees. Returns (value, choice): per-trait best option (start, S_t, P_t, r) and the best option without shared
+    trees (start0, P0_t, r0)."""
     dev = sd.dev
     unit_of_s, Us = units(cfg.groups)
     unit_of_s = torch.as_tensor(unit_of_s, device=dev)
@@ -230,8 +293,10 @@ def trial_eval(cfg: BoostConfig, sd: SplitData, eng: Engine, S0s, log):
 
 
 def refit(cfg: BoostConfig, sd: SplitData, eng: Engine, S0s, S0es, choice, log, scale=1.1, seed_offset=0):
-    """Refit on all fit rows with the chosen per-trait options (rounds x 1.1); predictions for the eval rows, the
-    no-sharing ablation, and per-trait SNP gains of the shared and own trees."""
+    """Refit on all fit rows with the chosen per-trait options (rounds x 1.1); predictions for the eval rows of the
+    chosen option and of the best option without shared trees, and per-trait SNP gains: of the shared trees (first
+    S_t rounds of trait t) and own trees (P_t rounds) of the chosen option, and their mean with the gains of the own
+    trees (P0_t rounds) of the option without shared trees."""
     dev = sd.dev
     unit_of_s, Us = units(cfg.groups)
     unit_of_s = torch.as_tensor(unit_of_s, device=dev)
@@ -249,10 +314,13 @@ def refit(cfg: BoostConfig, sd: SplitData, eng: Engine, S0s, S0es, choice, log, 
         c[m] = n_t[m].mean() / n_t[m].clamp_min(1)
     imp_s = torch.zeros(len(TRAITS), eng.p, device=dev)
     imp_p = torch.zeros(len(TRAITS), eng.p, device=dev)
+    imp_0 = torch.zeros(len(TRAITS), eng.p, device=dev)
+    lim = lambda v: torch.as_tensor(np.asarray(v), device=dev)                     # noqa: E731
     trees = []
     if cfg.groups != "none" and S_t.max() > 0:
         out = run_phase(eng, zero, sd.Y, sd.M.float() * c[None, :], unit_of_s, Us, cfg.depth_s, cfg.eta_s, cfg.lam,
-                        cfg.gamma, cfg.mcw_s, cfg.colsample, cfg.subsample, int(S_t.max()), gen, imp=imp_s)
+                        cfg.gamma, cfg.mcw_s, cfg.colsample, cfg.subsample, int(S_t.max()), gen, imp=imp_s,
+                        imp_rounds=lim(S_t))
         trees = out["trees"]
     FR = torch.where(gb[None, :], S0s, replay(trees, sd.XR, unit_of_s, cfg.depth_s, cfg.eta_s, S_t, zero))
     FE = torch.where(gb[None, :], S0es, replay(trees, sd.XE, unit_of_s, cfg.depth_s, cfg.eta_s, S_t, zeroe))
@@ -264,12 +332,14 @@ def refit(cfg: BoostConfig, sd: SplitData, eng: Engine, S0s, S0es, choice, log, 
         g_ = torch.Generator(device=dev).manual_seed(seed)
         o = run_phase(eng, FR_, sd.Y, sd.M.float(), unit_of_p, len(TRAITS), cfg.depth_p, cfg.eta_p, cfg.lam,
                       cfg.gamma, cfg.mcw_p, cfg.colsample, cfg.subsample, int(P.max()), g_, Xe=sd.XE, Fe0=FE_,
-                      snaps=snaps, imp=imp, keep_trees=False)
+                      snaps=snaps, imp=imp, keep_trees=False, imp_rounds=lim(P))
         return o["snap"] if o["snap"] is not None else FE_
     pred = own(FR, FE, P_t, imp_p, cfg.seed + 11 + seed_offset)
-    pred0 = own(torch.where(gb0[None, :], S0s, zero), torch.where(gb0[None, :], S0es, zeroe), P0_t, None,
+    pred0 = own(torch.where(gb0[None, :], S0s, zero), torch.where(gb0[None, :], S0es, zeroe), P0_t, imp_0,
                 cfg.seed + 12 + seed_offset)
-    return pred.cpu().numpy(), pred0.cpu().numpy(), imp_s.cpu().numpy(), imp_p.cpu().numpy(), S_t, P_t, P0_t
+    imp = 0.5 * (imp_s + imp_p) + 0.5 * imp_0            # the trait's model is the mean of the two refits
+    return pred.cpu().numpy(), pred0.cpu().numpy(), imp_s.cpu().numpy(), imp_p.cpu().numpy(), S_t, P_t, P0_t, \
+        imp.cpu().numpy()
 
 
 SPACE = {
@@ -300,22 +370,24 @@ def refit_all(choices, pick, sd, eng, S0s, S0es, log, n_seeds, scale, first_seed
     preds = [(np.zeros((len(sd.E), Tn), np.float32), np.zeros((len(sd.E), Tn), np.float32)) for _ in range(n_seeds)]
     imp_s = np.zeros((Tn, eng.p), np.float32)
     imp_p = np.zeros((Tn, eng.p), np.float32)
+    imp_m = np.zeros((Tn, eng.p), np.float32)             # mean over the refits that make up the final model
     per_trait = {}
     for k in sorted(set(pick)):
         cfg_, ch = choices[k]
         cols = [j for j in range(Tn) if pick[j] == k]
         for si in range(n_seeds):
-            pr, pr0, i_s, i_p, S_t, P_t, P0_t = refit(cfg_, sd, eng, S0s, S0es, ch, log, scale=scale,
-                                                      seed_offset=1000 * (si + first_seed))
+            pr, pr0, i_s, i_p, S_t, P_t, P0_t, i_m = refit(cfg_, sd, eng, S0s, S0es, ch, log, scale=scale,
+                                                           seed_offset=1000 * (si + first_seed))
             preds[si][0][:, cols], preds[si][1][:, cols] = pr[:, cols], pr0[:, cols]
             if si == 0:
                 imp_s[cols], imp_p[cols] = i_s[cols], i_p[cols]
+            imp_m[cols] += i_m[cols] / n_seeds
         for j in cols:
             per_trait[TRAITS[j]] = {"trial": k, "start": ch["start"][j], "S_t": int(S_t[j]), "P_t": int(P_t[j]),
                                     "start0": ch["start0"][j], "P0_t": int(P0_t[j]), "r_val": ch["r_val"][j],
                                     "r_val_noshare": ch["r_val_noshare"][j]}
         log(f"refit with trial {k} for {len(cols)} traits ({n_seeds} seeds)")
-    return preds, per_trait, imp_s, imp_p
+    return preds, per_trait, imp_s, imp_p, imp_m
 
 
 def main():
@@ -333,6 +405,14 @@ def main():
     ap.add_argument("--chunk", type=int, default=40000, help="SNPs per histogram block (GPU memory)")
     ap.add_argument("--seeds", type=int, default=2, help="refit seeds (predictions of every seed are kept)")
     ap.add_argument("--first_seed", type=int, default=1, help="reseed: first extra seed index (1 -> column s2)")
+    ap.add_argument("--optuna_seed", type=int, default=20261112,
+                    help="seed of the Optuna sampler (repeated tuning runs: another seed, another --tag and "
+                         "--config '{\"seed\": k}' for the random numbers of the trees)")
+    ap.add_argument("--eval_all", action="store_true",
+                    help="start: GBLUP predictions of every trait for all eval rows (cache used by --dump_full)")
+    ap.add_argument("--dump_full", action="store_true",
+                    help="reseed --first_seed 0 --seeds 2: recompute the four refits of the model and save its predictions "
+                         "of all traits for all evaluation accessions (<split>_full.npz); the fold file is not changed")
     a = ap.parse_args()
     dev_dir = data.RUNS / a.scenario / "mtboost_dev" / a.tag
     if a.mode == "collect":
@@ -347,7 +427,7 @@ def main():
         sh = sorted(c for c in allp if c.startswith("pred_s") and allp[c].notna().all())
         ns = sorted(c for c in allp if c.startswith("pred_noshare_s") and allp[c].notna().all())
         variants = {"": ["pred_s1"], "_noshare": ["pred_noshare_s1"], "_gblup": ["pred_gblup"],
-                    # final MT-Boost (FREEZE_DEVIATIONS 2026-11-12 19:45): seeds 1-2 of both versions
+                    # TraitBoost: mean of the chosen option and the best option without shared trees, two seeds each
                     "_final": ["pred_s1", "pred_s2", "pred_noshare_s1", "pred_noshare_s2"],
                     f"_share{len(sh)}": sh, f"_noshare{len(ns)}": ns}
         for suffix, cols in variants.items():
@@ -371,10 +451,20 @@ def main():
             torch.cuda.set_per_process_memory_fraction(min(1.0, a.gpu_mem_gb / tot), 0)
         t0 = time.time()
         log = lambda s: print(f"[{time.time() - t0:7.0f}s] {s}", flush=True)  # noqa: E731
-        sp = data.split_name(a.scenario, a.fold)
-        js = json.load(open(dev_dir / f"{sp}.json"))
-        sd = SplitData(a.scenario, a.fold, device, log)
+        out_all = data.RUNS / "all" / f"mtboost_{a.tag}{'' if a.traitset == 'stress' else '_mendel'}"
+        sp = data.split_name(a.scenario, a.fold) if a.scenario != "all" else "all"
+        js = json.load(open(out_all / "run.json" if a.scenario == "all" else dev_dir / f"{sp}.json"))
+        sd = SplitData(a.scenario, a.fold, device, log, long=use_traitset(a.traitset))
         S0, S0e = sd.gblup_start(log)
+        if a.dump_full:                       # every test accession needs the GBLUP start of every trait
+            S0e_all = sd.gblup_eval_all(log)
+            scored = np.zeros(S0e.shape, bool)
+            ee_ = {x: i for i, x in enumerate(sd.E)}
+            for j, t in enumerate(TRAITS):
+                scored[[ee_[x] for x in sd.tg[t].test_acc], j] = True
+            log(f"GBLUP start of the scored eval rows: max difference to the cached start "
+                f"{float(np.abs(S0e_all - S0e)[scored].max()):.2e}")
+            S0e = S0e_all
         S0s = torch.as_tensor((S0 - sd.mu) / sd.sd, dtype=torch.float32, device=device)
         S0es = torch.as_tensor((S0e - sd.mu) / sd.sd, dtype=torch.float32, device=device)
         eng = Engine(sd.XR, chunk=a.chunk)
@@ -388,13 +478,45 @@ def main():
             ch["r_val"] = [0.0] * len(TRAITS)
             ch["r_val_noshare"] = [0.0] * len(TRAITS)
             choices[k] = (cfg_, ch)
-        preds, _, _, _ = refit_all(choices, pick, sd, eng, S0s, S0es, log, a.seeds, scale=1.0,
-                                   first_seed=a.first_seed)
+        preds, _, imp_s, imp_p, imp_m = refit_all(choices, pick, sd, eng, S0s, S0es, log, a.seeds, scale=1.0,
+                                                  first_seed=a.first_seed)
+        if a.scenario == "all":               # split gains of the final model (same seeds as the fit: --first_seed 0)
+            assert a.first_seed == 0 and a.seeds == 2
+            z = np.load(out_all / "predictions.npz", allow_pickle=True)
+            back = lambda v: v * sd.sd[None, :] + sd.mu[None, :]                     # noqa: E731
+            dmax = max(float(np.abs(back(pr) - z[f"share_s{si}"]).max()) for si, (pr, _) in enumerate(preds, start=1))
+            d0 = max(float(np.abs(back(pr0) - z[f"noshare_s{si}"]).max()) for si, (_, pr0) in enumerate(preds, start=1))
+            log(f"refits reproduce the stored predictions: max difference {dmax:.2e} (shared), {d0:.2e} (not shared)")
+            np.savez_compressed(out_all / "importance.npz", shared=imp_s.astype(np.float32), own=imp_p.astype(np.float32),
+                                model=imp_m.astype(np.float32), traits=np.array(TRAITS))
+            log(f"split gains of the final model -> {out_all / 'importance.npz'}")
+            return
         R = pd.read_csv(dev_dir / f"{sp}.tsv.gz", sep="\t", dtype={"acc": str})
         ee = {x: i for i, x in enumerate(sd.E)}
+        if a.dump_full:      # predictions of all traits for all evaluation accessions (the fold files hold scored traits only)
+            assert a.first_seed == 0 and a.seeds == 2
+            if "pred_s1" not in R:
+                R["pred_s1"], R["pred_noshare_s1"] = R["pred"], R["pred_noshare"]
+            back = lambda v: v * sd.sd[None, :] + sd.mu[None, :]                     # noqa: E731
+            four = [back(x) for pr in preds for x in pr]          # s1 shared, s1 not shared, s2 shared, s2 not shared
+            dmax = 0.0
+            for j, t in enumerate(TRAITS):
+                m = (R.trait == t).to_numpy()
+                if not m.any():
+                    continue
+                ix = np.array([ee[x] for x in R.acc[m]], dtype=int)
+                for k, col in enumerate(("pred_s1", "pred_noshare_s1", "pred_s2", "pred_noshare_s2")):
+                    dmax = max(dmax, float(np.abs(four[k][ix, j] - R.loc[m, col].to_numpy()).max()))
+            log(f"refits against the stored predictions of the scored traits: max difference {dmax:.2e}")
+            np.savez_compressed(dev_dir / f"{sp}_full.npz", acc=sd.E, traits=np.array(TRAITS), final=np.mean(four, 0).astype(np.float32),
+                                max_difference_to_stored=dmax)
+            log(f"predictions of all traits for {len(sd.E)} accessions -> {dev_dir / (sp + '_full.npz')}")
+            return
         for j, t in enumerate(TRAITS):
             m = (R.trait == t).to_numpy()
-            ix = np.array([ee[x] for x in R.acc[m]])
+            if not m.any():                    # cv3: only the traits of the held-out experiment have test records
+                continue
+            ix = np.array([ee[x] for x in R.acc[m]], dtype=int)
             for si, (pr, pr0) in enumerate(preds, start=a.first_seed + 1):     # column s<k> = seed offset 1000(k-1)
                 R.loc[m, f"pred_s{si}"] = pr[ix, j] * sd.sd[j] + sd.mu[j]
                 R.loc[m, f"pred_noshare_s{si}"] = pr0[ix, j] * sd.sd[j] + sd.mu[j]
@@ -404,7 +526,8 @@ def main():
     if a.mode == "start":                     # GBLUP starts on the CPU (q04/q05), cached for the GPU runs
         t0 = time.time()
         log = lambda s: print(f"[{time.time() - t0:7.0f}s] {s}", flush=True)  # noqa: E731
-        SplitData(a.scenario, a.fold, torch.device("cpu"), log, long=use_traitset(a.traitset)).gblup_start(log)
+        sd = SplitData(a.scenario, a.fold, torch.device("cpu"), log, long=use_traitset(a.traitset))
+        sd.gblup_eval_all(log) if a.eval_all else sd.gblup_start(log)
         return
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     if device.type == "cuda":
@@ -422,7 +545,7 @@ def main():
     if a.trials > 0:
         import optuna
         optuna.logging.set_verbosity(optuna.logging.WARNING)
-        study = optuna.create_study(direction="maximize", sampler=optuna.samplers.TPESampler(seed=20261112))
+        study = optuna.create_study(direction="maximize", sampler=optuna.samplers.TPESampler(seed=a.optuna_seed))
 
         def objective(trial):
             cfg_ = suggest(trial, base)
@@ -445,7 +568,7 @@ def main():
     nums = sorted(choices)
     rv = np.array([choices[k][1]["r_val"] for k in nums])                       # trials x T
     pick = [nums[i] for i in rv.argmax(0)]
-    preds, per_trait, imp_s, imp_p = refit_all(choices, pick, sd, eng, S0s, S0es, log, a.seeds, scale=1.1)
+    preds, per_trait, imp_s, imp_p, imp_m = refit_all(choices, pick, sd, eng, S0s, S0es, log, a.seeds, scale=1.1)
     if a.scenario == "all":
         out = data.RUNS / "all" / f"mtboost_{a.tag}{'' if a.traitset == 'stress' else '_mendel'}"
         out.mkdir(parents=True, exist_ok=True)
@@ -456,7 +579,7 @@ def main():
         arrs["final"] = np.mean([arrs[k] for k in arrs if k.startswith(("share_s", "noshare_s"))], 0)
         np.savez_compressed(out / "predictions.npz", **arrs)
         np.savez_compressed(out / "importance.npz", shared=imp_s.astype(np.float32), own=imp_p.astype(np.float32),
-                            traits=np.array(TRAITS))
+                            model=imp_m.astype(np.float32), traits=np.array(TRAITS))
         json.dump({"scenario": "all", "traitset": a.traitset, "tag": a.tag, "code": CODE, "trials": trials,
                    "configs": {k: choices[k][0].__dict__ for k in sorted(set(pick))}, "per_trait": per_trait,
                    "seconds": round(time.time() - t0, 1)}, open(out / "run.json", "w"), indent=1, default=float)

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Start the outer-CV1 MT-Boost v2 queue on gpu10 card 0 once the cv1_inner queue has finished (one GPU process at a
+# Start the outer-CV1 TraitBoost v2 queue on gpu10 card 0 once the cv1_inner queue has finished (one GPU process at a
 # time while another project shares the card). Outer results are not to be read before the inner gate has been judged.
 cd /home/user/zhangzhishuai/myhermes/2080/SoyMultiRes
 until grep -q "queue done" logs/gpu/gpu_mtb_v2_inner.log 2>/dev/null; do sleep 60; done

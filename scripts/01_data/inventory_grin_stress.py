@@ -1,4 +1,4 @@
-"""Inventory of the 32 GRIN stress descriptors against SoySNP50K (read-only; no modelling).
+"""Inventory of the 33 GRIN stress descriptors against SoySNP50K (read-only; no modelling).
 
 usage: python -I inventory_grin_stress.py <grin_dir> <soysnp50k_samples.tsv> <out_dir>
 
@@ -9,7 +9,7 @@ Maturity group comes from the GRIN MATGROUP descriptor, region from the GRIN ori
 Writes to <out_dir>:
   trait_inventory.tsv      one row per trait: records, accessions, genotyped (max/soja), methods, value levels
   trait_methods.tsv        one row per trait x evaluation method: records, levels, original_value range, scale note
-  trait_overlap.tsv        genotyped accessions measured for both traits (32 x 32)
+  trait_overlap.tsv        genotyped accessions measured for both traits (33 x 33)
   trait_mg.tsv             maturity-group distribution of genotyped accessions per trait
   trait_origin.tsv         region-of-origin distribution per trait
   replicate_consistency.tsv accessions with >1 record per trait and how often the codes disagree
@@ -26,8 +26,8 @@ import pandas as pd
 GRIN, SAMPLES, OUT = sys.argv[1:4]
 os.makedirs(OUT, exist_ok=True)
 STRESS_IDS = [51023, 51025, 51033, 51034, 51040, 51054, 51074, 51085, 51091, 51094, 51097, 51099, 51103, 51107,
-              51108, 51110, 51111, 51128, 51129, 51131, 51132, 51133, 51136, 51137, 51139, 51140, 51142, 51143,
-              51144, 51150, 51151, 51153]  # PHYTOROT_10 (51138) has no SoySNP50K accession
+              51108, 51110, 51111, 51128, 51129, 51131, 51132, 51133, 51136, 51137, 51138, 51139, 51140, 51142,
+              51143, 51144, 51150, 51151, 51153]  # the stress descriptors with >= 500 genotyped accessions
 
 geno = set(pd.read_csv(SAMPLES, sep="\t", dtype=str).vcf_id)
 MG_NUM = {"000": -3, "00": -2, "0": -1, "I": 1, "II": 2, "III": 3, "IV": 4, "V": 5, "VI": 6, "VII": 7, "VIII": 8,
@@ -126,7 +126,7 @@ per_acc = long.drop_duplicates(["acc", "trait"]).groupby("acc").size()
 cov = {k: int((per_acc >= k).sum()) for k in (1, 2, 3, 5, 10, 15, 20)}
 print("accessions with >=k stress traits:", cov)
 print("cells observed:", int(per_acc.sum()), "of", len(per_acc) * len(traits),
-      f"({per_acc.sum() / (len(per_acc) * len(traits)):.3%} of accessions-with->=1 x 32)")
+      f"({per_acc.sum() / (len(per_acc) * len(traits)):.3%} of accessions-with->=1 x {len(traits)})")
 
 # MG / origin per trait (HapGAM accession table covers G. max analysis set only)
 lk = long.drop_duplicates(["acc", "trait"]).copy()

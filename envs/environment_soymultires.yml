@@ -1,7 +1,9 @@
 name: soymultires
 channels:
   - conda-forge
+  - bioconda
 dependencies:
+  - bioconda::blast=2.17.0
   - _openmp_mutex=4.5
   - alembic=1.20.1
   - alsa-lib=1.2.16.1
@@ -260,3 +262,4 @@ dependencies:
   - zlib-ng=2.3.3
   - zstd=1.5.7
 
+# blast=2.17.0 (bioconda) was added on 2026-11-18 with --freeze-installed, for probe_check.py and probe_rhg1_scan.py; see ENV_CHANGES.tsv.

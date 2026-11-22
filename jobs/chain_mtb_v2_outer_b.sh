@@ -1,5 +1,5 @@
 #!/bin/bash
-# Two lock-based runners for outer CV1 folds 1-4 on gpu10 card 0 (user allowed two MT-Boost processes, 2026-11-12):
+# Two lock-based runners for outer CV1 folds 1-4 on gpu10 card 0 (user allowed two TraitBoost processes, 2026-11-12):
 # runner A when the inner reseed queue is done, runner B when outer fold 0 (started 18:41 by the old chain) is done.
 cd /home/user/zhangzhishuai/myhermes/2080/SoyMultiRes
 L=jobs/lists/gpu_mtb_v2_outer_b.txt

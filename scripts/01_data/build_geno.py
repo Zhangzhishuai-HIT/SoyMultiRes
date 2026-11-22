@@ -10,7 +10,7 @@ Writes data/processed/geno/:
   snps.tsv          chrom, pos, id, ref, alt, alt_freq, maf, call_rate, block8, block16, block32
   grm.f32.npy       VanRaden kernel Z Z' / (2 sum p(1-p)) over all accessions (float32)
   pcs.tsv           top 10 eigenvectors of the kernel (with eigenvalues in pcs_eigenvalues.tsv)
-and data/processed/known_genes.tsv: the 12 calibration genes and the other positive-control loci with their blocks.
+(the table of known genes and loci, data/processed/known_genes.tsv, is written by known_loci.py).
 QC (all accessions, no phenotypes): call rate >= 0.95 and MAF >= 0.01. Blocks: HapGAM's fixed-size schemes
 (8, 16, 32 consecutive SNPs within a chromosome).
 """
@@ -102,46 +102,4 @@ pd.DataFrame({"pc": [f"PC{i + 1}" for i in range(10)], "eigenvalue": w[order],
               "share_of_trace": w[order] / float(np.trace(K))}).to_csv(OUT / "pcs_eigenvalues.tsv", sep="\t", index=False)
 del K
 
-# --- known genes / loci -> blocks
-gene_pos = {}
-with gzip.open(GFF, "rt") as f:
-    for line in f:
-        x = line.split("\t")
-        if len(x) > 8 and x[2] == "gene":
-            gid = x[8].split("ID=")[1].split(";")[0].replace("glyma.Wm82.gnm2.ann1.", "").replace("glyma.Wm82.gnm2.", "")
-            gene_pos[gid] = (x[0].replace("glyma.Wm82.gnm2.", ""), int(x[3]), int(x[4]))
-CAL = [  # 12 calibration genes (plan table C4); intervals for loci without a single gene
-    ("W1", "flower_purple", "Glyma.13G072100"), ("T", "pubescence_tawny", "Glyma.06G202300"),
-    ("Dt1", "indeterminate", "Glyma.19G194300"), ("E1", "maturity_group", "Glyma.06G207800"),
-    ("E2", "maturity_group", "Glyma.10G221500"), ("E3", "maturity_group", "Glyma.19G224200"),
-    ("E4", "maturity_group", "Glyma.20G090000"), ("I", "seedcoat_pigmented", "Glyma.08G110400"),
-    ("Rhg1", "NEMATCYST", "Gm18:1636622-1653524"), ("Rhg4", "NEMATCYST", "Glyma.08G108900"),
-    ("Rps1", "PHYTOROT", "Gm03:4026212-4208647"), ("GmSALT3", "SALTREACT", "Glyma.03G171600"),
-]
-OTHER = [  # further positive controls (plan appendix C), not used for calibration
-    ("Rfs2_GmRLK18-1", "SDS", "Glyma.18G023500"), ("GmSNAP11", "NEMATCYST_4", "Glyma.11G234500"),
-    ("IDC_Gm03_QTL", "CHLOROSIS", "Gm03:34272603-34540000"), ("QTL-M_GmF3GlcT", "chewing_insects", "Glyma.07G110300"),
-    ("Rcs_PI594891", "FROGEYE", "Gm13:29775320-29834027"), ("Rsv1", "virus", "Gm13:29820000-29910000"),
-    ("Rag2", "APHID", "Glyma.13G190800"), ("Rag1", "APHID", "Gm07:5530000-5770000"),
-    ("Rpp1", "RUST_TAN", "Glyma.18G280300"), ("Gm13_hotspot", "multi", "Gm13:29700000-30900000"),
-    ("Gm18_distal_Rps_Rpp", "multi", "Gm18:53900000-56500000"), ("Gm16_Rbs_Rcs3", "multi", "Gm16:28900000-36200000"),
-]
-rows = []
-for set_name, items in (("calibration", CAL), ("control", OTHER)):
-    for locus, trait, where in items:
-        if where.startswith("Glyma"):
-            c, a, b = gene_pos[where]
-        else:
-            c, rng = where.split(":"); a, b = map(int, rng.split("-"))
-        on = snps[(snps.chrom == c)]
-        inside = on[(on.pos >= a) & (on.pos <= b)]
-        nearest = on.iloc[(on.pos - (a + b) // 2).abs().argsort()[:1]]
-        r = dict(set=set_name, locus=locus, trait=trait, where=where, chrom=c, start=a, end=b,
-                 snps_inside=len(inside), nearest_snp_bp=int((nearest.pos - (a + b) // 2).abs().iloc[0]))
-        for k in (8, 16, 32):
-            bl = sorted(set(inside[f"block{k}"])) or [int(nearest[f"block{k}"].iloc[0])]
-            r[f"blocks{k}"] = ",".join(map(str, bl))
-        rows.append(r)
-pd.DataFrame(rows).to_csv(ROOT / "data/processed/known_genes.tsv", sep="\t", index=False)
-print(pd.DataFrame(rows)[["locus", "chrom", "start", "snps_inside", "nearest_snp_bp", "blocks16"]].to_string(index=False))
-print(f"done in {time.time() - t0:.0f}s")
+# The table of genes and loci of known position (data/processed/known_genes.tsv) is written by known_loci.py.

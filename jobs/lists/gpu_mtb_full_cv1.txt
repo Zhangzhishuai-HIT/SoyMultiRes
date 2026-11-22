@@ -1,0 +1,5 @@
+mtb_full_cv1_f0 /home/user/zhangzhishuai/.local/share/mamba/envs/soymultires/bin/python scripts/03_model/train_mtboost.py reseed --scenario cv1 --fold 0 --tag v2 --first_seed 0 --seeds 2 --dump_full --gpu_mem_gb 7
+mtb_full_cv1_f1 /home/user/zhangzhishuai/.local/share/mamba/envs/soymultires/bin/python scripts/03_model/train_mtboost.py reseed --scenario cv1 --fold 1 --tag v2 --first_seed 0 --seeds 2 --dump_full --gpu_mem_gb 7
+mtb_full_cv1_f2 /home/user/zhangzhishuai/.local/share/mamba/envs/soymultires/bin/python scripts/03_model/train_mtboost.py reseed --scenario cv1 --fold 2 --tag v2 --first_seed 0 --seeds 2 --dump_full --gpu_mem_gb 7
+mtb_full_cv1_f3 /home/user/zhangzhishuai/.local/share/mamba/envs/soymultires/bin/python scripts/03_model/train_mtboost.py reseed --scenario cv1 --fold 3 --tag v2 --first_seed 0 --seeds 2 --dump_full --gpu_mem_gb 7
+mtb_full_cv1_f4 /home/user/zhangzhishuai/.local/share/mamba/envs/soymultires/bin/python scripts/03_model/train_mtboost.py reseed --scenario cv1 --fold 4 --tag v2 --first_seed 0 --seeds 2 --dump_full --gpu_mem_gb 7

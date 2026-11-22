@@ -16,7 +16,9 @@ Writes splits/:
   fold_summary.tsv  accessions and resistant accessions per cv1 fold x trait
   SHA256SUMS
 Rules: near-identical groups (IBS >= 0.99, results/near_identical) never cross a cv1 or inner fold; resistant accessions
-of the rare (<5%) traits are spread over folds first (>= 4 per fold); seed 20261111.
+of the rare (<5%) traits are spread over folds first (>= 4 per fold); groups are then assigned within strata of
+maturity group, taxon and number of scored traits (1, 2-4, 5-9, 10+; counted without P. sojae race 10, which was added
+after the folds had been fixed); seed 20261111.
 """
 import hashlib
 import sys
@@ -35,11 +37,20 @@ P = ROOT / "data/processed"
 S = ROOT / "splits"
 S.mkdir(exist_ok=True)
 
+# The folds are those of the 32-trait analysis: P. sojae race 10 (PHYTOROT_10), whose records were added after the folds
+# had been fixed (2026-11-17; its first download had returned another descriptor), is left out of everything that
+# defines them (the accessions with records, the rare traits and the strata). All its accessions were scored for
+# other traits, so that every accession with a record has a fold.
+STRATA_EXCLUDE = ["PHYTOROT_10"]
+pm_ = pd.read_csv(P / "pheno_matrix.tsv.gz", sep="\t", index_col=0)
+n_fold_traits = pm_.drop(columns=STRATA_EXCLUDE).notna().sum(axis=1)
 acc = pd.read_csv(P / "accessions.tsv", sep="\t", dtype={"vcf_id": str})
-acc = acc[acc.n_stress_traits > 0].copy()
+acc = acc[acc.vcf_id.map(n_fold_traits).fillna(0) > 0].copy()
+assert set(pm_.index[pm_[STRATA_EXCLUDE].notna().any(axis=1)]) <= set(acc.vcf_id), "accessions scored only for race 10"
 assert acc.dup_group.notna().all(), "every phenotyped accession needs a near-identical group"
 acc["dup_group"] = acc.dup_group.astype(int)
-band = pd.cut(acc.n_stress_traits, [0, 1, 4, 9, 99], labels=["1", "2-4", "5-9", "10+"]).astype(str)
+n_strata = n_fold_traits.reindex(acc.vcf_id).fillna(0).astype(int).to_numpy()
+band = pd.cut(pd.Series(n_strata, index=acc.index), [0, 1, 4, 9, 99], labels=["1", "2-4", "5-9", "10+"]).astype(str)
 acc["stratum"] = acc.mg_group.fillna("MG_NA") + "|" + acc.taxon.fillna("NA").str.replace("Glycine ", "G.") + "|" + band
 
 # group-level stratum = stratum of the group's first member (groups are near-identical, so mostly homogeneous)
@@ -47,7 +58,8 @@ grp = acc.groupby("dup_group").agg(size=("vcf_id", "size"), stratum=("stratum", 
 
 
 res_all = pd.read_csv(P / "resistant_matrix.tsv.gz", sep="\t", index_col=0)
-RARE = list(res_all.mean()[res_all.mean() < 0.05].sort_values().index)        # rarest first
+res_fold = res_all.drop(columns=STRATA_EXCLUDE)
+RARE = list(res_fold.mean()[res_fold.mean() < 0.05].sort_values().index)      # rarest first (race 10: 36%, not rare)
 res_ph = res_all.reindex(acc.vcf_id).set_index(acc.dup_group.to_numpy())
 
 

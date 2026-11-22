@@ -79,7 +79,7 @@ def n_splits(scenario: str) -> int:
 
 
 def cv3_units() -> pd.DataFrame:
-    """考法三 units (splits/cv3_batches.tsv, frozen 2026-11-11): one held-out evaluation batch per unit."""
+    """Held-out experiments (splits/cv3_batches.tsv, made 2026-11-11; traits of unit 10 updated 2026-11-17 with P. sojae race 10): one held-out evaluation batch per unit."""
     return pd.read_csv(SPLITS / "cv3_batches.tsv", sep="\t").set_index("unit")
 
 
@@ -151,13 +151,21 @@ def cv3_traits_of(u: int) -> list:
 
 
 def hard_traits() -> list[str]:
-    """The 17 hard-to-predict traits of the primary endpoint (plan 5.1): rare (< 5% resistant) or < 1,000 genotyped."""
+    """The hard-to-predict traits of the primary endpoint (plan 5.1): rare (< 5% resistant) or < 1,000 genotyped
+    (18 of the 33 traits)."""
     inv = pd.read_csv(ROOT / "results/inventory/trait_inventory.tsv", sep="\t").set_index("trait")
     rare = set(rare_traits())
     return [t for t in T.TRAITS if t in rare or inv.loc[t, "genotyped"] < 1000]
 
 
 RULE53_REMOVED = ("PYTHIUMROT",)   # plan 5.3, docs/FREEZE_DEVIATIONS.md (2026-11-12): no signal in any single-trait model
+
+
+def sparse_traits() -> list[str]:
+    """The 18 sparse traits of the article: fewer than 5% resistant accessions or fewer than 1,000 genotyped
+    accessions (= hard_traits(); the article reports them without the exception of plan rule 5.3, see
+    docs/FREEZE_DEVIATIONS.md 2026-11-15)."""
+    return hard_traits()
 
 
 def primary_traits() -> list[str]:

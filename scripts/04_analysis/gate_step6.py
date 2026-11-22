@@ -44,7 +44,7 @@ d = pd.DataFrame(rows)
 d.to_csv(out / f"cv1_inner_metrics{SUFFIX}.tsv", sep="\t", index=False, float_format="%.4f")
 w = d.pivot_table(index="trait", columns="model", values="value")
 have = [m for m in SINGLE if m in w]
-missing = {m: int(w[m].isna().sum()) if m in w else 32 for m in SINGLE}
+missing = {m: int(w[m].isna().sum()) if m in w else len(T.TRAITS) for m in SINGLE}
 best = w[have].idxmax(axis=1).rename("best_model").to_frame()
 best["best_value"] = w[have].max(axis=1)
 best["short"] = [T.SHORT[t] for t in best.index]

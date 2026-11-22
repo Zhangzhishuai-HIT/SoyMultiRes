@@ -1,0 +1,3 @@
+gwas_stress_taxonpc /home/user/zhangzhishuai/.local/share/mamba/envs/soymultires/bin/python scripts/04_analysis/gwas_emmax.py --traitset stress --covar taxon_pcs --pcs 5 --tag _taxonpc --gpu_mem_gb 9
+gwas_stress_gmax /home/user/zhangzhishuai/.local/share/mamba/envs/soymultires/bin/python scripts/04_analysis/gwas_emmax.py --traitset stress --taxon gmax --tag _gmax --gpu_mem_gb 9
+gwas_stress_check /home/user/zhangzhishuai/.local/share/mamba/envs/soymultires/bin/python scripts/04_analysis/gwas_emmax.py --traitset stress --tag _check --gpu_mem_gb 9

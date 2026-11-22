@@ -1,23 +1,24 @@
-"""MT-Boost: multi-task gradient boosting for the 32 stress traits (plan step 6 as revised on 2026-11-12, see
-docs/FREEZE_DEVIATIONS.md). GPU implementation (gpu10 card 0), written for this project.
+"""TraitBoost (working name in the code: mtboost): gradient boosting for several traits with trees shared among
+traits. GPU implementation in PyTorch.
 
 For trait t (standardised targets, squared loss):
 
-    F_t(x) = GBLUP_t(x) + eta_s * sum_{m <= S_t} v_{m,t}(x) + eta_p * sum_{m <= P_t} u_{m,t}(x)
+    F_t(x) = s_t(x) + eta_s * sum_{m <= S_t} v_{m,t}(x) + eta_p * sum_{m <= P_t} u_{m,t}(x)
 
-  GBLUP_t   cross-fitted per-trait GBLUP (start of the boosting; the polygenic part)
-  v_m       shared trees: one tree per trait group and round; the split is shared by the traits of the group, every
+  s_t       starting value: zero, or cross-validated GBLUP predictions of the trait
+  v_m       shared trees: one tree per group of traits and round; the split is shared by the traits of the group, every
             trait has its own leaf value (vector leaves). Split gain = sum over the group's traits, each trait weighted
             so that all traits of the group count equally (c_t = mean n / n_t).
   u_m       trait-specific trees (one per trait and round)
-  S_t, P_t  rounds of shared trees borrowed (0 = none) and of own trees, chosen per trait on inner validation
+  S_t, P_t  rounds of shared trees used by trait t (0 = none) and of its trait-specific trees, chosen per trait on
+            inner validation folds (scripts/03_model/train_mtboost.py)
 
-Trees are grown depth-wise with second-order statistics (leaf value -G / (H + lambda), split gain as in XGBoost).
-Genotypes are inbred-line dosages (heterozygotes 0.01% of calls), so a split is "carries the alternative allele"
-(x >= 1) on one SNP, and the gradient/Hessian histograms of a whole tree level for all units are one matrix product
-B' [g, h] with B = 1[x >= 1] (n x p) -- the reason this runs fast on a GPU.
-Both kinds of trees use the same batched grower: an ensemble is a set of "units" (a trait group, or a single trait),
-each unit growing its own tree from the gradients of its traits.
+Trees are grown level by level with second-order statistics (leaf value -G / (H + lambda), split gain as in XGBoost).
+Genotypes are dosages of inbred lines (heterozygotes 0.02% of the calls), so a split is "carries the alternative
+allele" (x >= 1) on one SNP, and the gradient/Hessian sums of a whole tree level for all units are one matrix product
+B' [g, h] with B = 1[x >= 1] (n x p), which runs fast on a GPU.
+Both kinds of trees use the same batched grower: an ensemble is a set of "units" (a group of traits, or a single
+trait), each unit growing its own tree from the gradients of its traits.
 """
 from __future__ import annotations
 
@@ -65,10 +66,11 @@ class Engine:
         self.chunk = chunk
 
 
-def grow(eng: Engine, g, h, unit_of, U, depth, lam, gamma, mcw, colmask, imp=None):
+def grow(eng: Engine, g, h, unit_of, U, depth, lam, gamma, mcw, colmask, imp=None, imp_w=None):
     """Grow one depth-wise tree per unit. g, h: (n, T) gradients / Hessians (zero = not used). unit_of: (T,) unit of
     every trait. Returns feats (U, 2^D - 1), ok (U, 2^D - 1) split flags, leaf (T, 2^D) values, lidx (n, T) leaf index
-    of every training row for every trait. imp (T, p), if given, accumulates every trait's gain at the chosen splits.
+    of every training row for every trait. imp (T, p), if given, accumulates every trait's gain at the chosen splits
+    (multiplied by imp_w (T,), e.g. 0 for traits that do not use this round).
     Histograms are computed per block of eng.chunk SNPs (bounded memory)."""
     n, T = g.shape
     dev = g.device
@@ -116,6 +118,8 @@ def grow(eng: Engine, g, h, unit_of, U, depth, lam, gamma, mcw, colmask, imp=Non
             gl, hl = Gt - gr, Ht - hr
             tv = gl ** 2 / (hl + lam) + gr ** 2 / (hr + lam) - Gt ** 2 / (Ht + lam)
             tv = torch.where(ok[unit_of], tv, torch.zeros_like(tv))
+            if imp_w is not None:
+                tv = tv * imp_w[:, None]
             imp.scatter_add_(1, ft, tv)
         fi, oki = f[ar_u.expand(n, U), node], ok[ar_u.expand(n, U), node]   # n x U
         x = eng.X.gather(1, fi)
@@ -160,14 +164,17 @@ def pearson_cols(P, Y, M):
 
 def run_phase(eng, F0, Y, W, unit_of, U, depth, eta, lam, gamma, mcw, colsample, subsample, rounds, gen,
               val_idx=None, Yv=None, Mv=None, Xe=None, Fe0=None, snaps=None, check_every=10, patience=15, imp=None,
-              keep_trees=True, stop_tol=1e-3):
+              keep_trees=True, stop_tol=1e-3, imp_rounds=None):
     """Boost one ensemble (shared units or own trees) from the predictions F0 of the n training-matrix rows.
     W (n, T): loss weights (0 = cell not used; validation rows have weight 0, so their predictions are updated for
     free by the leaf assignment). With val_idx (rows) and targets Yv / mask Mv, per-trait r is tracked every
     check_every rounds and training stops when no trait has improved for `patience` checks (or after `rounds`).
     Xe / Fe0: other rows (eval accessions) routed through every new tree; snaps {round: [traits]} records their
     predictions for those traits at that round (training then runs to the largest requested round).
+    imp (T, p) accumulates the split gains of every trait; with imp_rounds (T,) only over the first imp_rounds[t]
+    rounds of trait t (the rounds its model uses).
     Returns dict(F, Fe, trees, snap, curves (checks x T, numpy) or None)."""
+    assert bool(torch.isfinite(F0).all()), "non-finite start values"   # one non-finite trait would block every split
     F_ = F0.clone()
     Fe = None if Fe0 is None else Fe0.clone()
     snap = None if (snaps is None or Fe is None) else Fe.clone()
@@ -185,7 +192,8 @@ def run_phase(eng, F0, Y, W, unit_of, U, depth, eta, lam, gamma, mcw, colsample,
         g = (F_ - Y) * W * rowm
         h = W * rowm
         colmask = torch.rand(eng.p, generator=gen, device=dev) < colsample
-        feats, oks, leaf, lidx = grow(eng, g, h, unit_of, U, depth, lam, gamma, mcw, colmask, imp)
+        imp_w = None if imp_rounds is None else (r <= imp_rounds).float()
+        feats, oks, leaf, lidx = grow(eng, g, h, unit_of, U, depth, lam, gamma, mcw, colmask, imp, imp_w)
         F_ += eta * leaf_values(leaf, lidx)
         if Fe is not None:
             Fe += eta * leaf_values(leaf, route(Xe, feats, oks, unit_of, depth))

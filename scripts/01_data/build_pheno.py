@@ -1,12 +1,12 @@
-"""Step 1 of the plan: harmonised phenotype tables for the 32 GRIN stress traits and the 5 Mendelian calibration traits.
+"""Step 1 of the plan: harmonised phenotype tables for the 33 GRIN stress traits and the 5 Mendelian calibration traits.
 
 usage: python -I build_pheno.py            (paths are fixed relative to the project root)
 
 Writes data/processed/:
   pheno_long.tsv.gz       one row per accession x trait x evaluation batch: score (higher = more resistant), raw code(s),
                           resistant (0/1), n_records, original_value mean, year
-  pheno_matrix.tsv.gz     accession x 32 traits: mean score over batches (empty = never tested)
-  resistant_matrix.tsv.gz accession x 32 traits: 1 if resistant in any batch, 0 if tested and never resistant
+  pheno_matrix.tsv.gz     accession x 33 traits: mean score over batches (empty = never tested)
+  resistant_matrix.tsv.gz accession x 33 traits: 1 if resistant in any batch, 0 if tested and never resistant
   hightemp_quant.tsv      the five quantitative values stored in the HIGHTEMP notes (Smith et al. 2008)
   mendel_matrix.tsv.gz    accession x 5 Mendelian calibration traits (HapGAM's binary codings; maturity group numeric)
   accessions.tsv          all 20,087 genotyped accessions: vcf_id, taxon, origin, region, MG, n_stress_traits,
@@ -60,7 +60,7 @@ def read(code: str) -> pd.DataFrame:
 geno = pd.read_csv(SAMPLES, sep="\t", dtype=str).vcf_id
 gset = set(geno)
 
-# ------------------------------------------------------------------ 32 stress traits
+# ------------------------------------------------------------------ 33 stress traits
 rows = []
 ht_quant = []
 for t in T.TRAITS:
@@ -115,7 +115,7 @@ for code, (name, pos, neg) in T.MENDEL.items():
     d = d[d.acc.isin(gset)]
     v = d.observation_value.str.strip()
     lab = pd.Series(np.where(v.isin(pos), 1.0, np.where(v.isin(neg), 0.0, np.nan)), index=d.index)
-    men[name] = lab.groupby(d.acc).mean().round()      # majority over records (ties -> 0.5 rounds to 0 or 1; rare)
+    men[name] = lab.groupby(d.acc).mean().round()      # majority over records (ties, 0.5, round to 0: half to even)
 d = read("MATGROUP")
 d = d[d.acc.isin(gset)]
 men["maturity_group"] = d.observation_value.str.strip().str.upper().map(T.MG_VALUE).groupby(d.acc).median()
@@ -178,10 +178,10 @@ lines = ["# Data card (SoyMultiRes)", "",
          "- `resistant` = GRIN resistant classes for categorical traits; for numeric traits the least-damaged 10% of an "
          "evaluation batch (ties included; e.g. FROGEYE2 score 1 = 'resistant with no lesions' covers 66%).",
          "- Records of the same accession in the same batch are averaged; batches stay separate in `pheno_long.tsv.gz`.",
-         "- RUST_TAN: numeric 2-5; direction assumed 'higher = more severe' (to be confirmed from the GRIN method page).",
+         "- RUST_TAN: numeric 1-5, higher = more severe (GRIN method SOYBEAN.RUST.RF.2004, saved as definitions_20261111/m492634.html: 1 = no visible symptoms, 5 = severe infection); negated for the models.",
          "- Mendelian calibration traits use HapGAM's binary codings (flower purple vs white, pubescence tawny vs gray, "
          "indeterminate vs determinate, seed coat pigmented vs yellow) and maturity group 000 = -2 ... X = 10.", "",
-         "## 32 stress traits", "",
+         f"## {len(T.TRAITS)} stress traits", "",
          "| Trait | Short | Category | Accessions | Batches | Levels (low → high resistance) | Resistant share |",
          "|---|---|---|---:|---:|---|---:|"]
 for t in T.TRAITS:

@@ -28,7 +28,7 @@ mu <- colMeans(Y, na.rm = TRUE); sdv <- apply(Y, 2, sd, na.rm = TRUE)
 Ys <- sweep(sweep(Y, 2, mu), 2, sdv, "/")
 tt <- ncol(Ys)
 t0 <- Sys.time()
-if (tt == 1) {                                     # one-trait category: single-trait RKHS (same prior scale)
+if (tt == 1) {                                     # one-trait category: single-trait RKHS (BGLR default prior)
   fm <- BGLR(y = Ys[, 1], ETA = list(list(K = K, model = "RKHS")), nIter = n_iter, burnIn = burn, thin = 5,
              verbose = FALSE, saveAt = file.path(d, "bglr_"))
   P <- matrix(fm$yHat, ncol = 1)

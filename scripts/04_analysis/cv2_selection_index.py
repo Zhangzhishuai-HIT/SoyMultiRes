@@ -2,20 +2,25 @@
 the measured values of the accession's other traits.
 
 usage: python -I cv2_selection_index.py <model> [<model> ...]      e.g. mtboost_v2_final lightgbm_avg4 gblup
-Design (splits/cv2_masks.tsv, frozen 2026-11-11): every test accession of outer fold f that was scored for >= 2 traits
+Design (splits/cv2_masks.tsv, made 2026-11-11 and rewritten 2026-11-17 with P. sojae race 10; folds unchanged): every test accession of outer fold f that was scored for >= 2 traits
 hides one target trait together with every trait scored in the same evaluation batch (Runcie & Cheng 2019); the
 remaining "visible" traits come from other batches. Steps, per outer fold f and model:
-  1. residuals of the model's out-of-fold predictions on cv1_inner split f (inside the training part of fold f):
-     per accession and trait, r = y - (a + b * pred) (a, b fitted per trait), standardised; numeric traits are centred
-     within batch first (as their evaluation);
+  1. residuals of the model's out-of-fold predictions on cv1_inner split f (one inner fold inside the training part of
+     fold f, about 20% of its accessions): per accession and trait, r = y - (a + b * pred) (a, b fitted per trait;
+     a negative slope b is set to 0 for these residuals), standardised; numeric traits are centred within batch first
+     (as their evaluation);
   2. residual correlation of every trait pair from accessions scored for both traits in different batches only
      (no shared field error, as in the test setting); pairs with < 50 such accessions or |rho| < 2/sqrt(n) -> 0;
   3. for each test accession: target t, visible set V; e_V = standardised residuals of the outer CV1 predictions of the
-     visible traits; correction = rho_tV (R_VV + 0.1 I)^-1 e_V, added to the calibrated target prediction;
-  4. the target's records of the test accessions are scored (evaluate.within_fold_z + evaluate.metrics).
-Single-trait models get the same correction with their own residuals; without correction their CV2 score is their
-CV1 score on the same records (plan). Writes runs/cv2/<model>_si/<trait>.tsv.gz and runs/cv2/<model>_cv1/<trait>.tsv.gz
-(records of the CV2 targets, corrected / uncorrected) and results/cv2/si_<model>.tsv.
+     visible traits; correction = rho_tV (R_VV + 0.1 I)^-1 e_V (eigenvalues of R_VV below 0.001 set to 0.001); the
+     corrected prediction is a + b * pred + s * correction (s = residual standard deviation of step 1); when the
+     slope b of the target trait in fold f is not positive, the index is not applied and the model's predictions are
+     kept (listed in results/cv2/si_<model>_no_slope.tsv);
+  4. the target's records of the test accessions are scored (evaluate.within_fold_z + evaluate.metrics), with the
+     corrected predictions and with the model's own predictions.
+Writes runs/cv2/<model>_si/<trait>.tsv.gz and runs/cv2/<model>_cv1/<trait>.tsv.gz (records of the CV2 targets,
+corrected / uncorrected), results/cv2/si_<model>.tsv, si_<model>_accessions.tsv and si_<model>_folds.tsv (per fold:
+trait pairs with an estimated and with a non-zero residual correlation, test accessions with a non-zero correction).
 """
 import sys
 from pathlib import Path
@@ -56,7 +61,7 @@ def main():
     fo = data.folds()
     for model in models:
         si_parts, cv1_parts = {t: [] for t in TRAITS}, {t: [] for t in TRAITS}
-        diag = []
+        diag, folds_diag, no_slope = [], [], []
         for f in range(5):
             tr_long = long[long.acc.map(fo.cv1_fold) != f]
             # 1. out-of-fold residuals inside the training part of fold f (cv1_inner split f)
@@ -70,11 +75,14 @@ def main():
                 if len(pa) < 10 or pa.pred.std() == 0:
                     continue
                 b, a = np.polyfit(pa.pred, pa.y, 1)
+                if b < 0:                                   # no positive relation in the inner fold: weight 0
+                    b, a = 0.0, float(pa.y.mean())
                 res = pa.y - (a + b * pa.pred)
                 calib[t] = (a, b, res.std() + 1e-12)
                 inner[t] = pd.DataFrame({"r": res / calib[t][2], "batches": pa.batches})
             # 2. residual correlations from accessions scored for both traits in different batches
             R = pd.DataFrame(0.0, index=TRAITS, columns=TRAITS)
+            n_est = n_nonzero = 0
             for i, t in enumerate(TRAITS):
                 R.loc[t, t] = 1.0
                 for u in TRAITS[i + 1:]:
@@ -85,9 +93,11 @@ def main():
                     n = len(j)
                     if n < 50:
                         continue
+                    n_est += 1
                     rho = float(np.corrcoef(j.r_t, j.r_u)[0, 1])
                     if np.isfinite(rho) and abs(rho) >= 2 / np.sqrt(n):
                         R.loc[t, u] = R.loc[u, t] = rho
+                        n_nonzero += 1
             # 3. test accessions of fold f: standardised residuals of the outer CV1 predictions, every trait at once
             mf = masks[masks.cv1_fold == f]
             outer, e = {}, {}
@@ -131,9 +141,18 @@ def main():
                     continue
                 a_t, b_t, s_t = calib[t]
                 rt = outer[t][outer[t].acc.isin(accs)].copy()
-                base = a_t + b_t * rt.pred
-                si_parts[t].append(rt.assign(pred=base + s_t * rt.acc.map(lambda x: corr[(x, t)])))
-                cv1_parts[t].append(rt.assign(pred=base))
+                if b_t > 0:
+                    base = a_t + b_t * rt.pred
+                    si_parts[t].append(rt.assign(pred=base + s_t * rt.acc.map(lambda x: corr[(x, t)])))
+                else:   # no positive calibration slope in the inner fold: the index is not applied, the model's predictions are kept
+                    si_parts[t].append(rt)
+                    no_slope.append({"fold": f, "trait": t})
+                cv1_parts[t].append(rt)                                     # the model's own predictions
+            # corrections that changed a prediction: non-zero and applied (positive calibration slope of the hidden trait)
+            applied_ = [abs(v) > 0 and calib[t_][1] > 0 for (acc_, t_), v in corr.items()]
+            folds_diag.append({"fold": f, "trait_pairs": len(TRAITS) * (len(TRAITS) - 1) // 2, "pairs_estimated": n_est,
+                               "pairs_nonzero": n_nonzero, "test_accessions": len(corr),
+                               "with_correction": int(np.sum(applied_))})
         rows = []
         for t in TRAITS:
             if not si_parts[t]:
@@ -149,13 +168,16 @@ def main():
             rows.append({"trait": t, "short": T.SHORT[t], "n_records": len(si), "metric": m_si["primary_metric"],
                          "cv1": m_c1["primary"], "si": m_si["primary"], "gain": m_si["primary"] - m_c1["primary"]})
         res = pd.DataFrame(rows)
-        res.to_csv(out_res / f"si_{model}.tsv", sep="\t", index=False, float_format="%.4f")
-        pd.DataFrame(diag).to_csv(out_res / f"si_{model}_accessions.tsv", sep="\t", index=False, float_format="%.4f")
-        prim = set(data.primary_traits())
-        p = res[res.trait.isin(prim)]
-        print(f"{model}: CV2 targets on 16 primary traits: uncorrected {p.cv1.mean():.4f}, selection index "
-              f"{p.si.mean():.4f}; other traits {res[~res.trait.isin(prim)].cv1.mean():.4f} -> "
-              f"{res[~res.trait.isin(prim)].si.mean():.4f}")
+        res.to_csv(out_res / f"si_{model}.tsv", sep="\t", index=False, float_format="%.6f")
+        pd.DataFrame(diag).to_csv(out_res / f"si_{model}_accessions.tsv", sep="\t", index=False, float_format="%.6g")
+        fd = pd.DataFrame(folds_diag)
+        fd.to_csv(out_res / f"si_{model}_folds.tsv", sep="\t", index=False)
+        pd.DataFrame(no_slope, columns=["fold", "trait"]).to_csv(out_res / f"si_{model}_no_slope.tsv", sep="\t", index=False)
+        print(f"{model}: index not applied (no positive slope) in {len(no_slope)} fold x trait combinations:",
+              [(x["fold"], T.SHORT[x["trait"]]) for x in no_slope])
+        print(f"{model}: {len(res)} traits, mean accuracy without the selection index {res.cv1.mean():.4f}, with it "
+              f"{res.si.mean():.4f}; higher with it for {int((res.gain > 1e-9).sum())} traits")      # smaller gains are rounding
+        print(fd.to_string(index=False))
 
 
 if __name__ == "__main__":

@@ -26,7 +26,7 @@ fi
 /home/user/zhangzhishuai/.local/share/mamba/envs/soymultires/bin/python -I scripts/02_baselines/bglr_mt_prepare.py lists --scenario cv1
 # LightGBM: trait x fold pairs without a finished part file (largest traits first)
 while read -r t f; do [ -f "runs/cv1/lightgbm/parts/$t.fold$f.tsv.gz" ] || echo "$t $f"; done < jobs/lists/lgbm_cv1.txt > jobs/lists/lgbm_cv1_todo.txt
-# LightGBM refits with 3 extra seeds (fair baseline for seed-averaged MT-Boost), both scenarios, only missing ones
+# LightGBM refits with 3 extra seeds (fair baseline for seed-averaged TraitBoost), both scenarios, only missing ones
 for sc in cv1_inner cv1; do while read -r t f; do
   sp=$([ "$sc" = cv1 ] && echo "fold$f" || echo "fold${f}_inner$f")
   [ -f "runs/$sc/lightgbm/parts/$t.$sp.seeds.tsv.gz" ] || echo "$t $f $sc"

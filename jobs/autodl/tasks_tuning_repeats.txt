@@ -1,0 +1,12 @@
+# Repeated tuning runs of TraitBoost for new accessions (tags v2r1, v2r2; Optuna seed and tree seed k = 1, 2), run on
+# AutoDL with run_queue.py (the lines as queued there); then jobs/r11_repeats_post.sh on the cluster.
+mtbrep_r1_f0|-|6|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py fit --scenario cv1 --fold 0 --tag v2r1 --trials 15 --seeds 2 --gpu_mem_gb 4.5 --optuna_seed 1 --config '{"seed": 1}'
+mtbrep_r1_f1|-|6|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py fit --scenario cv1 --fold 1 --tag v2r1 --trials 15 --seeds 2 --gpu_mem_gb 4.5 --optuna_seed 1 --config '{"seed": 1}'
+mtbrep_r1_f2|-|6|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py fit --scenario cv1 --fold 2 --tag v2r1 --trials 15 --seeds 2 --gpu_mem_gb 4.5 --optuna_seed 1 --config '{"seed": 1}'
+mtbrep_r1_f3|-|6|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py fit --scenario cv1 --fold 3 --tag v2r1 --trials 15 --seeds 2 --gpu_mem_gb 4.5 --optuna_seed 1 --config '{"seed": 1}'
+mtbrep_r1_f4|-|6|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py fit --scenario cv1 --fold 4 --tag v2r1 --trials 15 --seeds 2 --gpu_mem_gb 4.5 --optuna_seed 1 --config '{"seed": 1}'
+mtbrep_r2_f0|-|6|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py fit --scenario cv1 --fold 0 --tag v2r2 --trials 15 --seeds 2 --gpu_mem_gb 4.5 --optuna_seed 2 --config '{"seed": 2}'
+mtbrep_r2_f1|-|6|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py fit --scenario cv1 --fold 1 --tag v2r2 --trials 15 --seeds 2 --gpu_mem_gb 4.5 --optuna_seed 2 --config '{"seed": 2}'
+mtbrep_r2_f2|-|6|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py fit --scenario cv1 --fold 2 --tag v2r2 --trials 15 --seeds 2 --gpu_mem_gb 4.5 --optuna_seed 2 --config '{"seed": 2}'
+mtbrep_r2_f3|-|6|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py fit --scenario cv1 --fold 3 --tag v2r2 --trials 15 --seeds 2 --gpu_mem_gb 4.5 --optuna_seed 2 --config '{"seed": 2}'
+mtbrep_r2_f4|-|6|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py fit --scenario cv1 --fold 4 --tag v2r2 --trials 15 --seeds 2 --gpu_mem_gb 4.5 --optuna_seed 2 --config '{"seed": 2}'

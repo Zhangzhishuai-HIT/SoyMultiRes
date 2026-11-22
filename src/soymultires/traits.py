@@ -1,4 +1,4 @@
-"""Trait definitions for SoyMultiRes (32 GRIN stress descriptors + 5 Mendelian calibration traits).
+"""Trait definitions for SoyMultiRes (33 GRIN stress descriptors + 5 Mendelian calibration traits).
 
 Codes and scale directions follow the GRIN descriptor definition pages downloaded on 2026-11-11
 (down_data/GRIN_soybean_descriptors/definitions_20261111/). Every score is oriented so that a HIGHER value means
@@ -20,6 +20,7 @@ STRESS = [
     ("PHYTOROT_4", 51150, "PR4", "疫霉根腐病4号小种", "Phytophthora"),
     ("PHYTOROT_5", 51151, "PR5", "疫霉根腐病5号小种", "Phytophthora"),
     ("PHYTOROT_7", 51153, "PR7", "疫霉根腐病7号小种", "Phytophthora"),
+    ("PHYTOROT_10", 51138, "PR10", "疫霉根腐病10号小种", "Phytophthora"),
     ("PHYTOROT_12", 51139, "PR12", "疫霉根腐病12号小种", "Phytophthora"),
     ("PHYTOROT_17", 51140, "PR17", "疫霉根腐病17号小种", "Phytophthora"),
     ("PHYTOROT_20", 51142, "PR20", "疫霉根腐病20号小种", "Phytophthora"),
@@ -58,7 +59,7 @@ _LEVELS = {
     "APHID": {"S": 0, "MR": 1, "R": 2},
     "BRNSTEMROT": {"U": 0, "S": 0, "R": 2, "MR": 3},  # U = susceptible in preliminary field test; MR = "most resistant"
     "NSCANKER": {"S": 0, "MS": 1, "I": 2, "MR": 3, "R": 4},
-    "PMV": {"S": 0, "U": 1, "R": 2},               # U = field-resistant, not confirmed in the greenhouse
+    "PMV": {"S": 0, "U": 1, "R": 2},               # U = uncertain (GRIN code definition)
     "BPMV": {"S": 0, "T": 1},
     "SALTREACT": {"S": 0, "T": 1},
     "HIGHTEMP": {"S": 0, "I": 1, "T": 2},

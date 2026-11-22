@@ -1,0 +1,55 @@
+# TraitBoost rerun for 33 traits (P. sojae race 10 added 2026-11-17); AutoDL; default --chunk
+mtb33_inner_f0|-|4.5|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py fit --scenario cv1_inner --fold 0 --tag v2 --trials 15 --seeds 2 --gpu_mem_gb 4.5
+mtb33_inner_f1|-|4.5|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py fit --scenario cv1_inner --fold 1 --tag v2 --trials 15 --seeds 2 --gpu_mem_gb 4.5
+mtb33_inner_f2|-|4.5|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py fit --scenario cv1_inner --fold 2 --tag v2 --trials 15 --seeds 2 --gpu_mem_gb 4.5
+mtb33_inner_f3|-|4.5|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py fit --scenario cv1_inner --fold 3 --tag v2 --trials 15 --seeds 2 --gpu_mem_gb 4.5
+mtb33_inner_f4|-|4.5|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py fit --scenario cv1_inner --fold 4 --tag v2 --trials 15 --seeds 2 --gpu_mem_gb 4.5
+mtb33_cv1_f0|-|4.5|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py fit --scenario cv1 --fold 0 --tag v2 --trials 15 --seeds 2 --gpu_mem_gb 4.5
+mtb33_cv1_f1|-|4.5|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py fit --scenario cv1 --fold 1 --tag v2 --trials 15 --seeds 2 --gpu_mem_gb 4.5
+mtb33_cv1_f2|-|4.5|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py fit --scenario cv1 --fold 2 --tag v2 --trials 15 --seeds 2 --gpu_mem_gb 4.5
+mtb33_cv1_f3|-|4.5|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py fit --scenario cv1 --fold 3 --tag v2 --trials 15 --seeds 2 --gpu_mem_gb 4.5
+mtb33_cv1_f4|-|4.5|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py fit --scenario cv1 --fold 4 --tag v2 --trials 15 --seeds 2 --gpu_mem_gb 4.5
+mtb33_all|-|8|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py fit --scenario all --fold 0 --traitset stress --tag final --trials 15 --seeds 2 --gpu_mem_gb 8
+mtb33_reseed_cv1_f0|mtb33_cv1_f0|4.5|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py reseed --scenario cv1 --fold 0 --tag v2 --first_seed 2 --seeds 2 --gpu_mem_gb 4.5
+mtb33_reseed_cv1_f1|mtb33_cv1_f1|4.5|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py reseed --scenario cv1 --fold 1 --tag v2 --first_seed 2 --seeds 2 --gpu_mem_gb 4.5
+mtb33_reseed_cv1_f2|mtb33_cv1_f2|4.5|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py reseed --scenario cv1 --fold 2 --tag v2 --first_seed 2 --seeds 2 --gpu_mem_gb 4.5
+mtb33_reseed_cv1_f3|mtb33_cv1_f3|4.5|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py reseed --scenario cv1 --fold 3 --tag v2 --first_seed 2 --seeds 2 --gpu_mem_gb 4.5
+mtb33_reseed_cv1_f4|mtb33_cv1_f4|4.5|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py reseed --scenario cv1 --fold 4 --tag v2 --first_seed 2 --seeds 2 --gpu_mem_gb 4.5
+mtb33_gain_all|mtb33_all|8|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py reseed --scenario all --fold 0 --traitset stress --tag final --first_seed 0 --seeds 2 --gpu_mem_gb 8
+mtb33_cv3_u0|-|6|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py fit --scenario cv3 --fold 0 --tag v2 --trials 15 --seeds 2 --gpu_mem_gb 6
+mtb33_cv3_u1|-|6|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py fit --scenario cv3 --fold 1 --tag v2 --trials 15 --seeds 2 --gpu_mem_gb 6
+mtb33_cv3_u2|-|6|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py fit --scenario cv3 --fold 2 --tag v2 --trials 15 --seeds 2 --gpu_mem_gb 6
+mtb33_cv3_u3|-|6|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py fit --scenario cv3 --fold 3 --tag v2 --trials 15 --seeds 2 --gpu_mem_gb 6
+mtb33_cv3_u4|-|6|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py fit --scenario cv3 --fold 4 --tag v2 --trials 15 --seeds 2 --gpu_mem_gb 6
+mtb33_cv3_u5|-|6|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py fit --scenario cv3 --fold 5 --tag v2 --trials 15 --seeds 2 --gpu_mem_gb 6
+mtb33_cv3_u6|-|6|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py fit --scenario cv3 --fold 6 --tag v2 --trials 15 --seeds 2 --gpu_mem_gb 6
+mtb33_cv3_u7|-|6|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py fit --scenario cv3 --fold 7 --tag v2 --trials 15 --seeds 2 --gpu_mem_gb 6
+mtb33_cv3_u8|-|6|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py fit --scenario cv3 --fold 8 --tag v2 --trials 15 --seeds 2 --gpu_mem_gb 6
+mtb33_cv3_u9|-|6|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py fit --scenario cv3 --fold 9 --tag v2 --trials 15 --seeds 2 --gpu_mem_gb 6
+mtb33_cv3_u10|-|6|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py fit --scenario cv3 --fold 10 --tag v2 --trials 15 --seeds 2 --gpu_mem_gb 6
+mtb33_cv3_u11|-|6|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py fit --scenario cv3 --fold 11 --tag v2 --trials 15 --seeds 2 --gpu_mem_gb 6
+mtb33_cv3_u12|-|6|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py fit --scenario cv3 --fold 12 --tag v2 --trials 15 --seeds 2 --gpu_mem_gb 6
+mtb33_cv3_u13|-|6|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py fit --scenario cv3 --fold 13 --tag v2 --trials 15 --seeds 2 --gpu_mem_gb 6
+mtb33_cv3_u14|-|6|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py fit --scenario cv3 --fold 14 --tag v2 --trials 15 --seeds 2 --gpu_mem_gb 6
+mtb33_cv3_u15|-|6|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py fit --scenario cv3 --fold 15 --tag v2 --trials 15 --seeds 2 --gpu_mem_gb 6
+mtb33_full_cv1_f0|mtb33_reseed_cv1_f0|7|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py reseed --scenario cv1 --fold 0 --tag v2 --first_seed 0 --seeds 2 --dump_full --gpu_mem_gb 7
+mtb33_full_cv1_f1|mtb33_reseed_cv1_f1|7|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py reseed --scenario cv1 --fold 1 --tag v2 --first_seed 0 --seeds 2 --dump_full --gpu_mem_gb 7
+mtb33_full_cv1_f2|mtb33_reseed_cv1_f2|7|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py reseed --scenario cv1 --fold 2 --tag v2 --first_seed 0 --seeds 2 --dump_full --gpu_mem_gb 7
+mtb33_full_cv1_f3|mtb33_reseed_cv1_f3|7|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py reseed --scenario cv1 --fold 3 --tag v2 --first_seed 0 --seeds 2 --dump_full --gpu_mem_gb 7
+mtb33_full_cv1_f4|mtb33_reseed_cv1_f4|7|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py reseed --scenario cv1 --fold 4 --tag v2 --first_seed 0 --seeds 2 --dump_full --gpu_mem_gb 7
+mtb33_reseed_cv3_u0|mtb33_cv3_u0|6|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py reseed --scenario cv3 --fold 0 --tag v2 --first_seed 2 --seeds 2 --gpu_mem_gb 6
+mtb33_reseed_cv3_u1|mtb33_cv3_u1|6|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py reseed --scenario cv3 --fold 1 --tag v2 --first_seed 2 --seeds 2 --gpu_mem_gb 6
+mtb33_reseed_cv3_u2|mtb33_cv3_u2|6|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py reseed --scenario cv3 --fold 2 --tag v2 --first_seed 2 --seeds 2 --gpu_mem_gb 6
+mtb33_reseed_cv3_u3|mtb33_cv3_u3|6|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py reseed --scenario cv3 --fold 3 --tag v2 --first_seed 2 --seeds 2 --gpu_mem_gb 6
+mtb33_reseed_cv3_u4|mtb33_cv3_u4|6|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py reseed --scenario cv3 --fold 4 --tag v2 --first_seed 2 --seeds 2 --gpu_mem_gb 6
+mtb33_reseed_cv3_u5|mtb33_cv3_u5|6|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py reseed --scenario cv3 --fold 5 --tag v2 --first_seed 2 --seeds 2 --gpu_mem_gb 6
+mtb33_reseed_cv3_u6|mtb33_cv3_u6|6|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py reseed --scenario cv3 --fold 6 --tag v2 --first_seed 2 --seeds 2 --gpu_mem_gb 6
+mtb33_reseed_cv3_u7|mtb33_cv3_u7|6|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py reseed --scenario cv3 --fold 7 --tag v2 --first_seed 2 --seeds 2 --gpu_mem_gb 6
+mtb33_reseed_cv3_u8|mtb33_cv3_u8|6|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py reseed --scenario cv3 --fold 8 --tag v2 --first_seed 2 --seeds 2 --gpu_mem_gb 6
+mtb33_reseed_cv3_u9|mtb33_cv3_u9|6|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py reseed --scenario cv3 --fold 9 --tag v2 --first_seed 2 --seeds 2 --gpu_mem_gb 6
+mtb33_reseed_cv3_u10|mtb33_cv3_u10|6|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py reseed --scenario cv3 --fold 10 --tag v2 --first_seed 2 --seeds 2 --gpu_mem_gb 6
+mtb33_reseed_cv3_u11|mtb33_cv3_u11|6|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py reseed --scenario cv3 --fold 11 --tag v2 --first_seed 2 --seeds 2 --gpu_mem_gb 6
+mtb33_reseed_cv3_u12|mtb33_cv3_u12|6|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py reseed --scenario cv3 --fold 12 --tag v2 --first_seed 2 --seeds 2 --gpu_mem_gb 6
+mtb33_reseed_cv3_u13|mtb33_cv3_u13|6|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py reseed --scenario cv3 --fold 13 --tag v2 --first_seed 2 --seeds 2 --gpu_mem_gb 6
+mtb33_reseed_cv3_u14|mtb33_cv3_u14|6|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py reseed --scenario cv3 --fold 14 --tag v2 --first_seed 2 --seeds 2 --gpu_mem_gb 6
+mtb33_reseed_cv3_u15|mtb33_cv3_u15|6|/root/miniforge3/envs/soymultires/bin/python scripts/03_model/train_mtboost.py reseed --scenario cv3 --fold 15 --tag v2 --first_seed 2 --seeds 2 --gpu_mem_gb 6

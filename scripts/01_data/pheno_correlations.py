@@ -110,8 +110,8 @@ print(cor.sort_values("rho").head(10).to_string(index=False))
 # selective testing: resistance rate of a reference race among accessions tested / not tested for another race
 sel = []
 for ref, others in [("NEMATCYST_3", ["NEMATCYST_1", "NEMATCYST_4", "NEMATCYST_5", "NEMATCYST_14"]),
-                    ("PHYTOROT_1", ["PHYTOROT_3", "PHYTOROT_4", "PHYTOROT_5", "PHYTOROT_7", "PHYTOROT_12",
-                                    "PHYTOROT_17", "PHYTOROT_20", "PHYTOROT_25"])]:
+                    ("PHYTOROT_1", ["PHYTOROT_3", "PHYTOROT_4", "PHYTOROT_5", "PHYTOROT_7", "PHYTOROT_10",
+                                    "PHYTOROT_12", "PHYTOROT_17", "PHYTOROT_20", "PHYTOROT_25"])]:
     for o in others:
         tested = res[o].notna()
         r_in = res.loc[tested & res[ref].notna(), ref]

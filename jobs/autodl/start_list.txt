@@ -1,0 +1,32 @@
+--scenario cv1_inner --fold 0
+--scenario cv1_inner --fold 1
+--scenario cv1_inner --fold 2
+--scenario cv1_inner --fold 3
+--scenario cv1_inner --fold 4
+--scenario cv1 --fold 0
+--scenario cv1 --fold 0 --eval_all
+--scenario cv1 --fold 1
+--scenario cv1 --fold 1 --eval_all
+--scenario cv1 --fold 2
+--scenario cv1 --fold 2 --eval_all
+--scenario cv1 --fold 3
+--scenario cv1 --fold 3 --eval_all
+--scenario cv1 --fold 4
+--scenario cv1 --fold 4 --eval_all
+--scenario cv3 --fold 0
+--scenario cv3 --fold 1
+--scenario cv3 --fold 2
+--scenario cv3 --fold 3
+--scenario cv3 --fold 4
+--scenario cv3 --fold 5
+--scenario cv3 --fold 6
+--scenario cv3 --fold 7
+--scenario cv3 --fold 8
+--scenario cv3 --fold 9
+--scenario cv3 --fold 10
+--scenario cv3 --fold 11
+--scenario cv3 --fold 12
+--scenario cv3 --fold 13
+--scenario cv3 --fold 14
+--scenario cv3 --fold 15
+--scenario all --fold 0 --traitset stress
