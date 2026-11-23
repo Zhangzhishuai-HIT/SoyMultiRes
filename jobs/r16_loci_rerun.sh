@@ -7,7 +7,7 @@
 #SBATCH --time=03:00:00
 #SBATCH --output=/home/user/zhangzhishuai/myhermes/2080/SoyMultiRes/logs/slurm/%x_%j.log
 # Round-16 methods review: main locus map rerun (candidate genes also get the identifier of the best Arabidopsis hit,
-# for Table S12) and the conditional locus map rerun after the conditional association analysis was rerun
+# for Table S9) and the conditional locus map rerun after the conditional association analysis was rerun
 # (jobs/r16_cond_rerun.sh). Every other output is expected to be unchanged (fixed random seeds).
 set -euo pipefail
 cd /home/user/zhangzhishuai/myhermes/2080/SoyMultiRes

@@ -12,7 +12,7 @@ accession has it when homozygous for it. Resistance to race 3: resistant in at l
 Writes results/loci/rhg1_haplotypes.tsv (carriers and non-carriers by Rhg1 haplotype, with r2 between the indicators of
 the alternative allele (homozygous) and of the Peking haplotype over all genotyped accessions; G. max carriers by origin
 with the Rhg4 allele and their resistance to race 3) and results/loci/rhg1_named_accessions.tsv (the genotyped accessions
-named Peking in GRIN, the differential lines and resistance sources of Table S9, Jack, PI 567516C and Zi Hua No. 4:
+named Peking in GRIN, the differential lines and resistance sources of Table S10, Jack, PI 567516C and Zi Hua No. 4:
 call, identity with Peking and with PI 88788 at the Rhg1 SNPs, Rhg4 allele and resistance to SCN races 1, 3, 5 and 14).
 """
 import sys

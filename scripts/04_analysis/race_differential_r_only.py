@@ -2,7 +2,7 @@
 counted as resistant (Supplementary Note 4).
 
 usage: python -I race_differential_r_only.py
-In the main analysis (race_differential_check.py, Table S10), an accession is resistant to an SCN race when it was resistant
+In the main analysis (race_differential_check.py, Table S11), an accession is resistant to an SCN race when it was resistant
 or moderately resistant (GRIN codes R or MR) in at least one experiment. Here, among the accessions resistant to race 3
 and homozygous at the lead SNP of each race-differential locus (results/loci/loci_emmax.tsv), the percentage resistant
 to races 1, 5 and 14 of the carriers (homozygous for the alternative allele) and of the non-carriers is given with
