@@ -1,3 +1,0 @@
-2026-11-12	conda-forge	xgboost=3.0.5 cuda129 (libxgboost, py-xgboost, xgboost)	added with --freeze-installed for the multitask boosted-tree check
-2026-11-11	GitHub deruncie/MegaLMM (commit be44a748865e491fa26c8f8569e462d00bfbb87e)	MegaLMM 0.9.5, R CMD INSTALL from source (~/soft/MegaLMM_src_20261111/, MANIFEST.tsv) after the conda C++ compilers were added	only for the timing trial of Supplementary Note 1 (scripts/02_baselines/megalmm_trial.R)
-2026-11-18	bioconda	blast=2.17.0 (blastn, makeblastdb; 28 packages, all new)	added with --freeze-installed for the probe check of the chromosome 10 SNP (probe_check.py)

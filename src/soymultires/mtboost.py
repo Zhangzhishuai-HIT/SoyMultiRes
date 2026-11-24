@@ -1,4 +1,4 @@
-"""TraitBoost (working name in the code: mtboost): gradient boosting for several traits with trees shared among
+"""TraitBoost (module mtboost): gradient boosting for several traits with trees shared among
 traits. GPU implementation in PyTorch.
 
 For trait t (standardised targets, squared loss):

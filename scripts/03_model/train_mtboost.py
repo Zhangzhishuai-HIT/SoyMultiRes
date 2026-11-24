@@ -1,4 +1,4 @@
-"""TraitBoost (working name in the code: mtboost; model in src/soymultires/mtboost.py): tuning, per-trait choice,
+"""TraitBoost (model in src/soymultires/mtboost.py): tuning, per-trait choice,
 refits and split gains.
 
 usage:
@@ -12,8 +12,7 @@ usage:
   python train_mtboost.py reseed  --scenario cv1 --fold 0 --tag v2 --first_seed 0 --seeds 2 --dump_full
                                                              predictions of all traits for the test accessions (<split>_full.npz)
   python train_mtboost.py collect --scenario cv1 --tag v2      -> runs/<scenario>/mtboost_<tag>{_final,_noshare4,_gblup,...}/
-Scenarios: cv1_inner, cv1 (new accessions), cv3 (held-out experiments), all (all accessions; --traitset mendel for the
-five calibration traits).
+Scenarios: cv1_inner, cv1 (new accessions), cv3 (held-out experiments), all (all accessions).
 Per split (fit):
   1. targets as for the other models (data.split_targets); rows = training accessions with any record; the test rows
      are used only at the end;
@@ -33,7 +32,7 @@ Per split (fit):
   5. split gain of every SNP for every trait: the gain of the trait in the splits of the rounds that its prediction
      uses (shared: first S_t rounds; trait-specific: P_t rounds; option without shared trees: its rounds), mean over
      the refits (importance.npz, key "model").
-Outputs: runs/<scenario>/mtboost_dev/<tag>/<split>.{json,tsv.gz}; runs/all/mtboost_<tag>[_mendel]/.
+Outputs: runs/<scenario>/mtboost_dev/<tag>/<split>.{json,tsv.gz}; runs/all/mtboost_<tag>/.
 """
 import argparse
 import hashlib
@@ -56,22 +55,9 @@ from soymultires.reml import SpectralREML  # noqa: E402
 CODE = hashlib.sha256(Path(__file__).read_bytes() + (ROOT / "src/soymultires/mtboost.py").read_bytes()).hexdigest()[:16]
 TRAITS = list(T.TRAITS)
 CATEGORY = {row[0]: row[4] for row in T.STRESS}
-MENDEL_TRAITS = ["flower_purple", "pubescence_tawny", "indeterminate", "seedcoat_pigmented", "maturity_group"]
-
-
 def use_traitset(name):
-    """stress: the 33 stress traits (pheno_long). mendel: the 5 Mendelian traits of the known-gene calibration
-    (data/processed/mendel_matrix.tsv.gz), one shared-tree group. Returns the long table of the set."""
-    global TRAITS, CATEGORY
-    if name == "stress":
-        return data.pheno_long()
-    TRAITS = list(MENDEL_TRAITS)
-    CATEGORY = {t: "mendel" for t in TRAITS}
-    m = pd.read_csv(data.P / "mendel_matrix.tsv.gz", sep="\t", index_col=0)
-    lg = m.stack().rename("score").reset_index()
-    lg.columns = ["acc", "trait", "score"]
-    lg = lg.dropna(subset=["score"])                 # pandas 3: stack() keeps missing values
-    return lg.assign(batch="MENDEL", resistant=0.0)
+    """The 33 stress traits (pheno_long)."""
+    return data.pheno_long()
 
 
 def units(groups):
@@ -131,7 +117,7 @@ class SplitData:
     def gblup_start(self, log):
         """Cross-fitted GBLUP predictions (raw scale): S0 (fit rows, out-of-part) and S0e (eval rows, all fit rows)."""
         nm = "all" if self.scenario == "all" else data.split_name(self.scenario, self.f)
-        cache = ROOT / "work/mtboost_start" / f"{self.scenario}_{nm}{'' if TRAITS[0] in T.TRAITS else '_mendel'}.npz"
+        cache = ROOT / "work/mtboost_start" / f"{self.scenario}_{nm}.npz"
         if cache.exists():
             z = np.load(cache, allow_pickle=True)
             if list(z["R"]) == list(self.R) and list(z["E"]) == list(self.E) and z["S0"].shape[1] == len(TRAITS):
@@ -394,7 +380,6 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("mode", choices=["fit", "collect", "start", "reseed"])
     ap.add_argument("--scenario", default="cv1_inner", choices=list(data.SCENARIOS) + ["all"])
-    ap.add_argument("--traitset", default="stress", choices=["stress", "mendel"])
     ap.add_argument("--fold", type=int)
     ap.add_argument("--tag", default="v1")
     ap.add_argument("--trials", type=int, default=15)
@@ -451,10 +436,10 @@ def main():
             torch.cuda.set_per_process_memory_fraction(min(1.0, a.gpu_mem_gb / tot), 0)
         t0 = time.time()
         log = lambda s: print(f"[{time.time() - t0:7.0f}s] {s}", flush=True)  # noqa: E731
-        out_all = data.RUNS / "all" / f"mtboost_{a.tag}{'' if a.traitset == 'stress' else '_mendel'}"
+        out_all = data.RUNS / "all" / f"mtboost_{a.tag}"
         sp = data.split_name(a.scenario, a.fold) if a.scenario != "all" else "all"
         js = json.load(open(out_all / "run.json" if a.scenario == "all" else dev_dir / f"{sp}.json"))
-        sd = SplitData(a.scenario, a.fold, device, log, long=use_traitset(a.traitset))
+        sd = SplitData(a.scenario, a.fold, device, log, long=use_traitset("stress"))
         S0, S0e = sd.gblup_start(log)
         if a.dump_full:                       # every test accession needs the GBLUP start of every trait
             S0e_all = sd.gblup_eval_all(log)
@@ -526,7 +511,7 @@ def main():
     if a.mode == "start":                     # GBLUP starts on the CPU, cached for the GPU runs
         t0 = time.time()
         log = lambda s: print(f"[{time.time() - t0:7.0f}s] {s}", flush=True)  # noqa: E731
-        sd = SplitData(a.scenario, a.fold, torch.device("cpu"), log, long=use_traitset(a.traitset))
+        sd = SplitData(a.scenario, a.fold, torch.device("cpu"), log, long=use_traitset("stress"))
         sd.gblup_eval_all(log) if a.eval_all else sd.gblup_start(log)
         return
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -535,7 +520,7 @@ def main():
         torch.cuda.set_per_process_memory_fraction(min(1.0, a.gpu_mem_gb / tot), 0)
     t0 = time.time()
     log = lambda s: print(f"[{time.time() - t0:7.0f}s] {s}", flush=True)  # noqa: E731
-    sd = SplitData(a.scenario, a.fold, device, log, long=use_traitset(a.traitset))
+    sd = SplitData(a.scenario, a.fold, device, log, long=use_traitset("stress"))
     S0, S0e = sd.gblup_start(log)
     S0s = torch.as_tensor((S0 - sd.mu) / sd.sd, dtype=torch.float32, device=device)
     S0es = torch.as_tensor((S0e - sd.mu) / sd.sd, dtype=torch.float32, device=device)
@@ -570,7 +555,7 @@ def main():
     pick = [nums[i] for i in rv.argmax(0)]
     preds, per_trait, imp_s, imp_p, imp_m = refit_all(choices, pick, sd, eng, S0s, S0es, log, a.seeds, scale=1.1)
     if a.scenario == "all":
-        out = data.RUNS / "all" / f"mtboost_{a.tag}{'' if a.traitset == 'stress' else '_mendel'}"
+        out = data.RUNS / "all" / f"mtboost_{a.tag}"
         out.mkdir(parents=True, exist_ok=True)
         back = lambda v: v * sd.sd[None, :] + sd.mu[None, :]                         # noqa: E731
         arrs = {"acc": sd.E, "traits": np.array(TRAITS), "gblup": back((S0e - sd.mu) / sd.sd)}
@@ -580,7 +565,7 @@ def main():
         np.savez_compressed(out / "predictions.npz", **arrs)
         np.savez_compressed(out / "importance.npz", shared=imp_s.astype(np.float32), own=imp_p.astype(np.float32),
                             model=imp_m.astype(np.float32), traits=np.array(TRAITS))
-        json.dump({"scenario": "all", "traitset": a.traitset, "tag": a.tag, "code": CODE, "trials": trials,
+        json.dump({"scenario": "all", "traitset": "stress", "tag": a.tag, "code": CODE, "trials": trials,
                    "configs": {k: choices[k][0].__dict__ for k in sorted(set(pick))}, "per_trait": per_trait,
                    "seconds": round(time.time() - t0, 1)}, open(out / "run.json", "w"), indent=1, default=float)
         log(f"done: predictions for {len(sd.E)} accessions -> {out}")

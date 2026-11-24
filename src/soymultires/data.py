@@ -1,6 +1,6 @@
-"""Data access shared by every model: phenotypes, frozen splits, genotype kernel, per-fold targets.
+"""Data access: phenotypes, training and test sets, genotype kernel, per-fold targets.
 
-Phenotype handling follows decision 2 of the plan:
+Phenotype values:
   categorical traits  y = mean ordinal score of the accession over batches; no batch adjustment
   numeric traits      batch fixed effects: y = mean over the accession's batches of (score - training batch mean);
                       batches without training records use the training grand mean
@@ -79,7 +79,7 @@ def n_splits(scenario: str) -> int:
 
 
 def cv3_units() -> pd.DataFrame:
-    """Held-out experiments (splits/cv3_batches.tsv, made 2026-11-11; traits of unit 10 updated 2026-11-17 with P. sojae race 10): one held-out evaluation batch per unit."""
+    """Held-out experiments (splits/cv3_batches.tsv): one held-out evaluation batch per unit."""
     return pd.read_csv(SPLITS / "cv3_batches.tsv", sep="\t").set_index("unit")
 
 
@@ -151,23 +151,13 @@ def cv3_traits_of(u: int) -> list:
 
 
 def hard_traits() -> list[str]:
-    """The hard-to-predict traits of the primary endpoint (plan 5.1): rare (< 5% resistant) or < 1,000 genotyped
-    (18 of the 33 traits)."""
+    """Traits with fewer than 5% resistant accessions or fewer than 1,000 genotyped accessions (18 of the 33 traits)."""
     inv = pd.read_csv(ROOT / "results/inventory/trait_inventory.tsv", sep="\t").set_index("trait")
     rare = set(rare_traits())
     return [t for t in T.TRAITS if t in rare or inv.loc[t, "genotyped"] < 1000]
 
 
-RULE53_REMOVED = ("PYTHIUMROT",)   # plan 5.3, docs/FREEZE_DEVIATIONS.md (2026-11-12): no signal in any single-trait model
-
-
 def sparse_traits() -> list[str]:
-    """The 18 sparse traits of the article: fewer than 5% resistant accessions or fewer than 1,000 genotyped
-    accessions (= hard_traits(); the article reports them without the exception of plan rule 5.3, see
-    docs/FREEZE_DEVIATIONS.md 2026-11-15)."""
+    """The 18 sparse traits: fewer than 5% resistant accessions or fewer than 1,000 genotyped accessions."""
     return hard_traits()
 
-
-def primary_traits() -> list[str]:
-    """Traits of the primary comparison: the hard traits minus those removed under plan rule 5.3 (16 since 2026-11-12)."""
-    return [t for t in hard_traits() if t not in RULE53_REMOVED]

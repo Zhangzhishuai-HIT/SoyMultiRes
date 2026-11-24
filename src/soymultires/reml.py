@@ -1,4 +1,4 @@
-# Copied 2026-11-11 from 2080/HapGAM/src/hapgam/reml.py (sha256 506f58f10db76783f37226fe6da838b09566c79367aeb80a95dd7a0f873ac5f4); HapGAM is read-only (frozen files).
+# Spectral REML for GBLUP, from the HapGAM repository (https://github.com/Zhangzhishuai-HIT/HapGAM).
 """Kernel mixed models fitted by REML (spectral / FaST-LMM formulation) in torch.
 
 y = Xb + g + e,  g ~ N(0, s2g K),  e ~ N(0, s2e I),  delta = s2e / s2g.

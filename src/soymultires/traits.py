@@ -1,7 +1,6 @@
-"""Trait definitions for SoyMultiRes (33 GRIN stress descriptors + 5 Mendelian calibration traits).
+"""Trait definitions: the 33 GRIN stress descriptors, their codings and stress categories.
 
-Codes and scale directions follow the GRIN descriptor definition pages downloaded on 2026-11-11
-(down_data/GRIN_soybean_descriptors/definitions_20261111/). Every score is oriented so that a HIGHER value means
+Codes and scale directions follow the GRIN-Global descriptor definitions. Every score is oriented so that a HIGHER value means
 MORE resistant / tolerant.
 """
 from __future__ import annotations
@@ -102,13 +101,6 @@ def batch_year(method: str):
     return None
 
 
-# Mendelian calibration traits (HapGAM's binary definitions; maturity group numeric as in HapGAM)
-MENDEL = {
-    "FLWRCOLOR": ("flower_purple", {"P", "Dp", "Lp"}, {"W", "Nw"}),
-    "PUBCOLOR": ("pubescence_tawny", {"T", "Lt"}, {"G", "Ng"}),
-    "STEMTERM": ("indeterminate", {"N"}, {"D"}),
-    "SCOATCOLOR": ("seedcoat_pigmented", {"Bl", "Br", "Rbr", "Gnbr"}, {"Y"}),
-}
 MG_VALUE = {"000": -2.0, "00": -1.0, "0": 0.0, "I": 1.0, "II": 2.0, "III": 3.0, "IV": 4.0,
             "V": 5.0, "VI": 6.0, "VII": 7.0, "VIII": 8.0, "IX": 9.0, "X": 10.0}
 
