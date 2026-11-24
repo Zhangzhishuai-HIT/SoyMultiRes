@@ -17,7 +17,7 @@ usage: python -I make_best_single.py --nested <scenario>                       (
              model_without_heldout); GBLUP there is runs/cv3/mtboost_v2_gblup.
   CHOICE.tsv gives the model per trait and fold (cv1, cv1_inner) or per trait (cv3).
 Positional form: the same model per trait in all folds, from a choice file made on the pooled inner predictions (kept
-as best_single_pooled for the comparison in Supplementary Note 1).
+as best_single_pooled).
 """
 import shutil
 import sys

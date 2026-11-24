@@ -1,2 +1,0 @@
-mtb_gain_stress /home/user/zhangzhishuai/.local/share/mamba/envs/soymultires/bin/python scripts/03_model/train_mtboost.py reseed --scenario all --fold 0 --traitset stress --tag final --first_seed 0 --seeds 2 --gpu_mem_gb 8
-mtb_gain_mendel /home/user/zhangzhishuai/.local/share/mamba/envs/soymultires/bin/python scripts/03_model/train_mtboost.py reseed --scenario all --fold 0 --traitset mendel --tag final --first_seed 0 --seeds 2 --gpu_mem_gb 8

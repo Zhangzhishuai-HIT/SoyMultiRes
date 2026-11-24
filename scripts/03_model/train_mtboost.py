@@ -523,7 +523,7 @@ def main():
         R.to_csv(dev_dir / f"{sp}.tsv.gz", sep="\t", index=False)
         log(f"added {len(preds)} refit seed(s) to {sp}.tsv.gz")
         return
-    if a.mode == "start":                     # GBLUP starts on the CPU (q04/q05), cached for the GPU runs
+    if a.mode == "start":                     # GBLUP starts on the CPU, cached for the GPU runs
         t0 = time.time()
         log = lambda s: print(f"[{time.time() - t0:7.0f}s] {s}", flush=True)  # noqa: E731
         sd = SplitData(a.scenario, a.fold, torch.device("cpu"), log, long=use_traitset(a.traitset))

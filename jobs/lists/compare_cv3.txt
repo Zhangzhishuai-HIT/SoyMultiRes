@@ -1,4 +1,0 @@
-cv3 mtboost_v2_final mtboost_v2_gblup all
-cv3 mtboost_v2_final bayesb all
-cv3 mtboost_v2_final lightgbm_avg4 all
-cv3 mtboost_v2_final mtboost_v2_noshare2 all

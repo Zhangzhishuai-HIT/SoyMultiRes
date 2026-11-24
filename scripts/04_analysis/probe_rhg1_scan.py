@@ -1,5 +1,5 @@
 """Copies of the sequence around the chromosome 10 lead SNP (ss715606985) in the Rhg1 region of soybean genome
-assemblies, compared with the SoySNP50K calls of the same cultivars (Supplementary Note 4).
+assemblies, compared with the SoySNP50K calls of the same cultivars.
 
 usage: python -I probe_rhg1_scan.py [--workers 4]
 Assemblies: all Glycine max genome assemblies of the Legume Information System (genome_main files of

@@ -7,7 +7,7 @@ cultivars and breeding lines; DONATED, material donated by another collection) f
 accessions without a source type in these tables are "not given". Index: results/germplasm/ranking.tsv
 (multi_resistance_index_within_taxon, TraitBoost fitted to all accessions). Writes
 results/germplasm/candidate_sources.tsv (counts for all candidates, the never-scored candidates and all G. max
-accessions) and results/germplasm/source_types.tsv (source type of every genotyped accession, used for Table S16).
+accessions) and results/germplasm/source_types.tsv (source type of every genotyped accession).
 """
 import sys
 from pathlib import Path

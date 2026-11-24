@@ -6,7 +6,7 @@ accessions. Purpose: see which traits carry genomic signal and how long the kern
 usage: python pilot_gblup.py <dosage.npy> <samples.tsv> <scores_by_batch.tsv.gz> <out_dir> [threads] [cpu|cuda] [TRAIT,TRAIT...]
 A trait list runs only those traits and merges them into an existing summary (used 2026-11-11 to run the two largest
 SCN traits on CPU after the GPU run hit its 5 GiB cap at n = 11,758).
-With cuda (gpu10, GPU 0 only, via jobs/launch_gpu0.sh) the per-trait kernels and eigendecompositions run on the GPU
+With CUDA, the per-trait kernels and eigendecompositions run on the GPU
 with a 5 GiB cap; the full kernel stays in host memory.
 """
 import json
@@ -19,7 +19,7 @@ import pandas as pd
 import torch
 from sklearn.metrics import average_precision_score, roc_auc_score
 
-sys.path.insert(0, "/home/user/zhangzhishuai/myhermes/2080/HapGAM/src")
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "HapGAM/src"))   # ../HapGAM next to this project
 from hapgam.reml import SpectralREML  # noqa: E402
 
 DOS, SAM, SCORES, OUT = sys.argv[1:5]

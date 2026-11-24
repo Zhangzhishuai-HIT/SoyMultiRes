@@ -47,9 +47,8 @@ The code keeps the working name of the model (`mtboost`).
 
 `scripts/03_model/train_mt.py`, `train_hgmt.py`, `mtgbm_probe.py` and `diag_prox.py`, with
 `src/soymultires/mtmodel.py` and `hgmt.py`, belong to multi-trait models that were tried during development and are
-not reported in the article. The same applies to the BGLR trial script in `scripts/02_baselines/`; the MegaLMM timing
-trial (`megalmm_trial_prep.py`, `megalmm_trial.R`, MegaLMM 0.9.5 installed from source, `envs/ENV_CHANGES.tsv`) is
-reported in Supplementary Note 1 as the reason the factor model was not used.
+not reported in the article. The same applies to the BGLR trial script in `scripts/02_baselines/` and to the MegaLMM
+timing trial (`megalmm_trial_prep.py`, `megalmm_trial.R`, MegaLMM 0.9.5 installed from source, `envs/ENV_CHANGES.tsv`).
 
 ## Layout
 
@@ -61,7 +60,6 @@ reported in Supplementary Note 1 as the reason the factor model was not used.
 | `scripts/03_model/` | TraitBoost: `train_mtboost.py start` (GBLUP predictions, CPU), `fit` (GPU), `reseed` (further refits; split gains of the final model), `collect` |
 | `scripts/04_analysis/` | best single-trait model, accuracy tables, paired bootstrap over groups of near-identical accessions, selection index, mixed-model association analysis (EMMAX, GPU; with or without fixed effects for taxon and principal components), choice of the locus score with known genes, loci and genes in shared loci, robustness of the loci, known loci, loci reported in earlier studies, pubescence form at the chromosome 12 locus, race-differential loci, multi-resistance index and its out-of-fold check, independent checks of the evaluation |
 | `scripts/05_figures/` | figures |
-| `jobs/` | SLURM scripts, GPU launcher and task queue, task lists |
 | `envs/` | conda environments (`environment_soymultires.yml`: Python 3.11, PyTorch 2.5.1, LightGBM 4.7, Optuna 5.0; `environment_soymultires_r.yml`: R 4.3, BGLR 1.1.4) |
 | `docs/DATA_CARD.md` | trait codings, record counts and data versions |
 
@@ -75,8 +73,7 @@ Each script describes its inputs, outputs and usage in its first lines.
 TraitBoost and the association analysis use a CUDA GPU when one is available; the other models run on CPU.
 `train_mtboost.py` enables TF32 matrix products on the GPU by default (`--no_tf32` switches them off). All TraitBoost
 fits and refits of the article (33 traits) were run with the code of this release, the default `--chunk` and TF32 on
-NVIDIA RTX 4090 GPUs (`jobs/autodl/`: GBLUP starts `run_starts.sh`, task queue `run_queue.py` with
-`tasks_race10.txt`); stored predictions are reproduced exactly only with the same setting, chunk, code and GPU type.
+NVIDIA RTX 4090 GPUs; stored predictions are reproduced exactly only with the same setting, chunk, code and GPU type.
 
 ## Data
 
@@ -95,7 +92,7 @@ The SoySNP50K VCF is parsed with `scripts/01_data/parse_soysnp50k.py` of the Hap
 (https://github.com/Zhangzhishuai-HIT/HapGAM). `scripts/01_data/build_geno.py` and `build_pheno.py` read the
 parsed files from `../HapGAM/data/interim/soysnp50k/` (variables `HG` and `SAMPLES` at the top of the scripts). The
 genes and loci used for calibration and annotation are listed, with their sources, in `scripts/01_data/known_loci.py`.
-The job scripts in `jobs/` and `envs/create_envs.sh` contain paths of the original machine.
+All scripts are run from the project root.
 
 ## Order of the analysis
 
@@ -109,17 +106,17 @@ The job scripts in `jobs/` and `envs/create_envs.sh` contain paths of the origin
    `bglr_mt_prepare.py` + `bglr_mt_fit.R` (`--scenario cv1` and `cv3`), `run_lgbm.py` (`--reseed 3` for three further
    refits, `--collect`).
 3. TraitBoost (`scripts/03_model/train_mtboost.py`): `start`, `fit`, `reseed`, `collect` for the scenarios
-   `cv1_inner`, `cv1`, `cv3` and `all` (on the GPU server: `jobs/autodl/run_starts.sh`, then `run_queue.py`);
+   `cv1_inner`, `cv1`, `cv3` and `all`;
    `reseed --scenario all --first_seed 0 --seeds 2` writes the split gains of
    the final model, and `reseed --scenario cv1 --fold <f> --first_seed 0 --seeds 2 --dump_full` (default `--chunk`) the
    predictions of all traits for the test accessions of a fold (out-of-fold check of the multi-resistance index; it
    needs the GBLUP predictions of every trait for all test accessions, `start --scenario cv1 --fold <f> --eval_all`,
-   which it computes itself when they are not cached). Repeated tuning runs for new accessions (`jobs/autodl/tasks_tuning_repeats.txt`): `fit --scenario cv1
+   which it computes itself when they are not cached). Repeated tuning runs for new accessions: `fit --scenario cv1
    --fold <f> --tag v2r<k> --trials 15 --seeds 2 --optuna_seed <k> --config '{"seed": <k>}'` (k = 1, 2), then
-   `collect --scenario cv1 --tag v2r<k>` (`jobs/r11_repeats_post.sh`).
+   `collect --scenario cv1 --tag v2r<k>`.
 4. Analysis (`scripts/04_analysis/`): `SINGLE=gblup,bayesb,lightgbm_avg4 SUFFIX=_avg4 gate_step6.py` and
-   `make_best_single.py results/gate/cv1_inner_best_single_avg4.tsv best_single_pooled <cv1|cv1_inner|cv3>` (best
-   single-trait model chosen once from the pooled inner predictions, for the comparison in Supplementary Note 1), then
+   `make_best_single.py results/gate/cv1_inner_best_single_avg4.tsv best_single_pooled <cv1|cv1_inner|cv3>` (a variant
+   chosen once from the pooled inner predictions, not used in the article), then
    `inner_choice_check.py` (the choices of the inner cross-validation made within each training set and without the
    accessions of the held-out experiments, with the resulting accuracies) and `make_best_single.py --nested
    <cv1|cv1_inner|cv3>` (the best single-trait model of the article as `best_single_avg4`: chosen within each training set,
@@ -130,12 +127,12 @@ The job scripts in `jobs/` and `envs/create_envs.sh` contain paths of the origin
    `cv2_selection_index.py mtboost_v2_final best_single_avg4`), `bootstrap_mean_diff.py cv1` and `cv3` (mean
    difference over traits, joint resampling of all traits; `--models A B ...` compares A with the others, `--out` names
    the result file, e.g. for the repeated tuning runs and the ensemble of LightGBM and TraitBoost without shared trees;
-   `--drop_from_sparse NEMATCYST_14` adds the sparse traits without SCN race 14, `jobs/r19_hapcond_meandiff.sh`), `seed_variation.py` (accuracy of single refits with
+   `--drop_from_sparse NEMATCYST_14` adds the sparse traits without SCN race 14), `seed_variation.py` (accuracy of single refits with
    different seeds), `gwas_emmax.py` (main analysis; `--add_traits` merges traits added later into the stored results;
    `--covar taxon_pcs --tag _taxonpc`, `--taxon gmax --tag _gmax`
    and `--condition major_genes --tag _cond`, the last with the lead SNPs near Rhg1, Rhg4 and Rps1 as fixed effects,
-   for the checks; `--condition_snps ... --tag _condscn` with the five SNPs of Supplementary Note 4 as fixed effects for
-   SCN races 1, 3, 5 and 14, `jobs/r11_cond_chr10.sh`), `gwas_mac.py`, `gwas_null_threshold.py` (genome-wide threshold of every trait from 1,000
+   for the checks; `--condition_snps "NEMATCYST_1,NEMATCYST_3,NEMATCYST_5,NEMATCYST_14:ss715597431,ss715628625,ss715610396,ss715629273,ss715602753" --tag _condscn`
+   with five SNPs as fixed effects for SCN races 1, 3, 5 and 14), `gwas_mac.py`, `gwas_null_threshold.py` (genome-wide threshold of every trait from 1,000
    traits simulated without effects of single SNPs, whose liability variance ratio is matched to the observed REML ratio; the
    random numbers of a trait follow from its position in the original order of 32 traits, race 10 last; `--add_traits`
    for traits added later; with
@@ -151,10 +148,10 @@ The job scripts in `jobs/` and `envs/create_envs.sh` contain paths of the origin
    against shifts of the shared loci), `locus_robustness.py` (summary of
    all analyses, directions at the most significant SNP of every trait, resistant carriers per locus),
    `control_loci.py`,
-   `race_differential_check.py --block 2059`, `--block 1173`, `--genomewide` and `--crossval` (out-of-sample check of the genome-wide comparison), `chr10_carriers.py` (origin, GRIN source type and SCN race 3 resistance of the carriers of the chromosome 10 allele; z at its lead SNP with the five SNPs fitted, `results/loci/chr10_conditional.tsv`), `race_differential_lmm.py` (carriers and non-carriers among the race-3-resistant accessions with a mixed model; also with a wider search range and with equal residual and genetic variances), `probe_check.py` (BLASTN search of the 121 bp around the two race-differential lead SNPs and of 500 random SNPs in the Wm82.a2, Wm82.a4 and Peking assemblies; needs BLAST+ and the genome files of the Legume Information System; the alignments in the Peking assembly quoted in Supplementary Note 4 are in its output `work/probe_check/hits_Peking.gnm3.KKCD.tsv`), `probe_rhg1_scan.py` (copies of the sequence around the chromosome 10 lead SNP in the first intron of the α-SNAP gene of the *Rhg1* repeat in all *G. max* assemblies of the Legume Information System, against the SoySNP50K calls of the same cultivars; `jobs/r16_probe_check.sh`, `jobs/r16_probe_rhg1_scan.sh`) and `rhg1_haplotype_check.py` (calls of the chromosome 10 lead SNP, which detects the retrotransposon RAC of *rhg1-a* (Bayless et al. 2019), against the SNP haplotypes around *Rhg1* and the allele near *Rhg4*), `chr10_haplotype_conditional.py` (z of SCN races 1, 3, 5 and 14 at the chromosome 10 lead SNP with the Peking and PI 88788 SNP haplotypes at *Rhg1* as fixed effects), `race_differential_r_only.py` (the separation with only resistant, not moderately resistant, reactions counted as resistant), `reported_loci.py` (needs
+   `race_differential_check.py --block 2059`, `--block 1173`, `--genomewide` and `--crossval` (out-of-sample check of the genome-wide comparison), `chr10_carriers.py` (origin, GRIN source type and SCN race 3 resistance of the carriers of the chromosome 10 allele; z at its lead SNP with the five SNPs fitted, `results/loci/chr10_conditional.tsv`), `race_differential_lmm.py` (carriers and non-carriers among the race-3-resistant accessions with a mixed model; also with a wider search range and with equal residual and genetic variances), `probe_check.py` (BLASTN search of the 121 bp around the two race-differential lead SNPs and of 500 random SNPs in the Wm82.a2, Wm82.a4 and Peking assemblies; needs BLAST+ and the genome files of the Legume Information System; the alignments in the Peking assembly quoted in Supplementary Note 4 are in its output `work/probe_check/hits_Peking.gnm3.KKCD.tsv`), `probe_rhg1_scan.py` (copies of the sequence around the chromosome 10 lead SNP in the first intron of the α-SNAP gene of the *Rhg1* repeat in all *G. max* assemblies of the Legume Information System, against the SoySNP50K calls of the same cultivars) and `rhg1_haplotype_check.py` (calls of the chromosome 10 lead SNP, which detects the retrotransposon RAC of *rhg1-a* (Bayless et al. 2019), against the SNP haplotypes around *Rhg1* and the allele near *Rhg4*), `chr10_haplotype_conditional.py` (z of SCN races 1, 3, 5 and 14 at the chromosome 10 lead SNP with the Peking and PI 88788 SNP haplotypes at *Rhg1* as fixed effects), `race_differential_r_only.py` (the separation with only resistant, not moderately resistant, reactions counted as resistant), `reported_loci.py` (needs
    `results/literature/reported_associations.tsv`, the SNPs reported for the traits in earlier association
    studies; the list is part of Online Resource 3 of the article), `pubescence_check.py` (needs the GRIN
-   descriptor PUBFORM in `data/raw/grin_pubescence/`), `candidate_sources.py` (GRIN source types of the candidates and of all accessions, for Table S16), `germplasm.py` (after the `--dump_full` refits of the five
+   descriptor PUBFORM in `data/raw/grin_pubescence/`), `candidate_sources.py` (GRIN source types of the candidates and of all accessions), `germplasm.py` (after the `--dump_full` refits of the five
    folds; also the out-of-fold index of every scored accession and bootstrap intervals over groups of near-identical
    accessions), `candidate_relatives.py` (identity of the never-scored candidates with scored accessions),
    `verify_pipeline.py`.
@@ -163,9 +160,3 @@ The job scripts in `jobs/` and `envs/create_envs.sh` contain paths of the origin
 ## Licence
 
 MIT (see `LICENSE`).
-
-## Article files
-
-`manuscript/build/build_all.sh` builds the manuscript, Online Resources 1-3 (Online Resource 3 with the association
-statistics of all SNPs and traits, `build_esm3.py`) and the cover letter (`build_cover_letter.py`, which checks the
-numbers it states against the manuscript).

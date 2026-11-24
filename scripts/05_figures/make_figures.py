@@ -1,13 +1,12 @@
 """Main figures (printed size, Times New Roman, PDF + 600-dpi PNG in figures/).
 
-usage: python make_figures.py [fig1 ... fig6]
+usage: python make_figures.py [fig1 ... fig5]
 fig1  overview of the study (data, TraitBoost, evaluation, loci and germplasm)
 fig2  stress records of the collection: scored accession x trait cells and associations between traits
 fig3  prediction: new accessions (model means, TraitBoost vs the best single-trait model, contribution of the shared
       trees) and held-out experiments (model means)
-fig4  known-gene calibration of the locus read-outs
-fig5  shared loci: genome-wide map, allele directions in the chromosome 13 region, race-differential locus at Rhg1
-fig6  multi-resistant germplasm: out-of-fold validation and the multi-resistance index
+fig4  shared loci: genome-wide map, allele directions of the shared loci, reactions of race-3-resistant accessions
+fig5  multi-resistant germplasm: out-of-fold validation and the multi-resistance index
 figS1, figS2  supplementary figures: quantile-quantile and Manhattan plots of the association analyses
 Colours (figstyle.py): TraitBoost red, comparators navy/ochre/teal/greys; stress categories, locus classes and allele
 directions each have a fixed palette checked with the dataviz palette validator.
@@ -171,22 +170,24 @@ def fig1():
             ax.text(121 + 3 * 2.6 + 1.1, y - 1.5, "×", fontsize=8, ha="center", va="center", color=fs.RED, zorder=3)
         txt(135.5, y + 1.0, h1, 6.8, fs.INK, fontweight="bold")
         txt(135.5, y - 1.5, h2, 6.5)
-    txt(121, 65.0, "Compared with GBLUP, BayesB,\nLightGBM, multi-trait GBLUP,\nthe best single-trait model\nand two ensembles of models", 6.5)
+    txt(121, 65.0, "Compared with GBLUP, BayesB,\nLightGBM, multi-trait GBLUP,\nthe best single-trait model\nand a tree ensemble", 6.5)
 
     # (d) loci and germplasm
     stage(118, 3, 54, 45, "d", "Association loci and germplasm", fs.RED)
-    for j, hgt in enumerate([9, 8.5, 8, 7.6, 7.2, 6.8, 6.4, 6.0, 5.6, 5.2, 2.2, 1.4]):  # calibration (ten bars above the line)
-        ax.add_patch(Rectangle((121 + j * 1.3, 32.0), 1.0, hgt * 0.62, fc=fs.NAVY if j < 10 else "#c8c8c8",
-                               ec="none", zorder=2))
-    ax.plot([120.6, 136.6], [35.0, 35.0], color=muted, lw=0.5, ls=(0, (2, 1.5)), zorder=3)
+    # genome-wide thresholds calibrated by simulation (schematic): bars, blocks; dotted, Bonferroni; solid, calibrated
+    bonf_, cal_ = 4.0, 6.2
+    for j, hgt in enumerate([2.0, 3.1, 8.6, 2.4, 5.0, 1.6, 4.4, 9.2, 2.8, 3.6, 7.4, 1.9]):
+        fc_ = fs.NAVY if hgt > cal_ else ("#9aa3b2" if hgt > bonf_ else "#d3d7de")
+        ax.add_patch(Rectangle((121 + j * 1.3, 32.0), 1.0, hgt * 0.62, fc=fc_, ec="none", zorder=2))
+    ax.plot([120.6, 136.6], [32.0 + bonf_ * 0.62] * 2, color=muted, lw=0.6, ls=(0, (1, 1.2)), zorder=3)
+    ax.plot([120.6, 136.6], [32.0 + cal_ * 0.62] * 2, color=fs.RED, lw=0.8, zorder=3)
     loci_ = pd.read_csv(ROOT / "results/loci/loci_emmax.tsv", sep="\t")
     shared_ = loci_[loci_.n_traits >= 2]
     ncls = shared_["class"].value_counts()
     null_ = pd.read_csv(ROOT / "results/loci/sharing_null.tsv", sep="\t").set_index("min_traits")
-    lg_ = pd.read_csv(ROOT / "results/calibration/logo.tsv", sep="\t")
     rk_ = pd.read_csv(ROOT / "results/germplasm/ranking.tsv", sep="\t", index_col=0)
     top_ = rk_[rk_.multi_resistance_index_within_taxon >= 4].taxon.value_counts()
-    txt(138.5, 39.2, f"{int(lg_.top1pct.sum())} of {len(lg_)} known genes\nin the top 1% of blocks")
+    txt(138.5, 39.2, f"Calibrated thresholds:\nloci in {len(loci_)} blocks")
     txt(121, 30.6, f"{len(shared_)} blocks are loci of ≥ 2 traits")
     glyphs = [("concordant", "+ + +", f"{ncls.get('concordant', 0)}\nconcordant"),
               ("race-differential", "+ + −", f"{ncls.get('race-differential', 0)} race-\ndifferential"),
@@ -313,8 +314,7 @@ def means(fig, spec, frame, models, sets, letter, xlabel):
         for i, m in enumerate(models):
             model_marker(ax, frame[sel][m].mean(), y[i], m, s=24)
         short = {"TraitBoost without shared trees": "TraitBoost without\nshared trees", "Best single-trait model": "Best single-\ntrait model",
-                 "Multi-trait GBLUP": "Multi-trait\nGBLUP", "Chosen option alone": "Chosen option\nalone",
-                 "Mean of GBLUP and LightGBM": "Mean of GBLUP\nand LightGBM"}
+                 "Multi-trait GBLUP": "Multi-trait\nGBLUP"}
         ax.set_yticks(y, [short.get(fs.MODEL[m][0], fs.MODEL[m][0]) for m in models] if k == 0 else [], fontsize=8)
         for lab_ in ax.get_yticklabels():
             lab_.set_linespacing(0.95)
@@ -367,8 +367,8 @@ def fig3():
     fig = plt.figure(figsize=(fs.W2, 165 * fs.MM))
     gs = fig.add_gridspec(2, 3, width_ratios=[1.0, 1.0, 1.0], height_ratios=[1, 1], hspace=0.36, wspace=0.62,
                           left=0.135, right=0.975, top=0.953, bottom=0.085)
-    order_m = ["gblup", "bayesb", "lightgbm_avg4", "bglr_mt", "best_single_avg4", "ens_gblup_lightgbm", "ens_lightgbm_noshare",
-               "mtboost_v2_noshare4", "mtboost_v2_share4", "mtboost_v2_final"]
+    order_m = ["gblup", "bayesb", "lightgbm_avg4", "bglr_mt", "best_single_avg4", "ens_lightgbm_noshare",
+               "mtboost_v2_noshare4", "mtboost_v2_final"]
     means(fig, gs[0, 0], pe, order_m,
           ((sp, f"Sparse ({int(sp.sum())})"), (~sp, f"Other ({int((~sp).sum())})")), "a",
           "Mean accuracy, new accessions")
@@ -409,40 +409,8 @@ def fig3():
     fs.save(fig, "fig3_prediction")
 
 
-# ---------------------------------------------------------------- Fig. 4 calibration
+# ---------------------------------------------------------------- Fig. 4 loci
 def fig4():
-    p = pd.read_csv(ROOT / "results/calibration/percentiles.tsv", sep="\t")
-    p = p[p.window == "block"]
-    order = ["W1", "T", "Dt1", "I", "E1", "E2", "E3", "E4", "Rhg1", "Rhg4", "Rps1", "GmSALT3"]
-    fig, ax = plt.subplots(figsize=(fs.W1, 64 * fs.MM))
-    x = np.arange(len(order))
-    ax.axhspan(0.008, 1, color="#eef2f9", lw=0, zorder=0)
-    for off, (ro, lab, col, mk) in zip((-0.16, 0.16), (("emmax", "Association statistic", fs.NAVY, "s"),
-                                                        ("mtboost", "TraitBoost split gain", fs.RED, "o"))):
-        v = p[p.readout == ro].set_index("gene").percentile.reindex(order).clip(lower=0.01)
-        ax.scatter(x + off, v, s=16, color=col, marker=mk, label=lab, zorder=3, linewidths=0.4, edgecolors="white")
-    ax.axhline(1, color=fs.MUTED, lw=0.5, ls=(0, (3, 2)))
-    ax.set_yscale("log")
-    ax.set_ylim(100, 0.008)
-    ax.set_yticks([0.01, 0.1, 1, 10, 100], ["0", "0.1", "1", "10", "100"])
-    ax.minorticks_off()
-    yb = np.sqrt(0.01 * 0.1)                             # axis break between 0 (no block higher) and 0.1
-    for dy in (0.93, 1.07):
-        ax.plot([-0.012, 0.012], [yb * dy / 1.12, yb * dy * 1.12], transform=ax.get_yaxis_transform(), color=fs.INK,
-                lw=0.6, clip_on=False, zorder=5)
-    ax.plot([0, 0], [yb * 0.93 / 1.12, yb * 1.07 * 1.12], transform=ax.get_yaxis_transform(), color="white", lw=1.6,
-            clip_on=False, zorder=4)
-    ax.set_ylabel("Blocks with a higher score (%)")
-    ax.set_xticks(x, order, rotation=45, ha="right", fontstyle="italic")
-    ax.tick_params(axis="x", length=0)
-    ax.text(len(order) - 0.5, 0.85, "top 1%", fontsize=8, color=fs.INK2, ha="right", va="bottom")
-    ax.legend(loc="lower left", handletextpad=0.2, borderaxespad=0.3)
-    fig.subplots_adjust(left=0.2, right=0.97, top=0.97, bottom=0.2)
-    fs.save(fig, "fig4_known_genes")
-
-
-# ---------------------------------------------------------------- Fig. 5 loci
-def fig5():
     snps = pd.read_csv(data.P / "geno/snps.tsv", sep="\t")
     loci = pd.read_csv(ROOT / "results/loci/loci_emmax.tsv", sep="\t")
     reg = pd.read_csv(ROOT / "results/loci/regions_emmax.tsv", sep="\t")
@@ -618,14 +586,14 @@ def fig5():
                       bbox_to_anchor=(0.5, 1.52), fontsize=8)
             x_letter = fig.transFigure.inverted().transform(ax.transAxes.transform((-0.3, 0)))[0]
             fig.text(x_letter, y_letter, "c", fontsize=10, fontweight="bold", va="bottom", ha="left")
-    fs.save(fig, "fig5_loci")
+    fs.save(fig, "fig4_loci")
 
 
-# ---------------------------------------------------------------- Fig. 6 germplasm
+# ---------------------------------------------------------------- Fig. 5 germplasm
 MG_NAMES = {-2: "000", -1: "00", 0: "0", 1: "I", 2: "II", 3: "III", 4: "IV", 5: "V", 6: "VI", 7: "VII", 8: "VIII", 9: "IX", 10: "X"}
 
 
-def fig6():
+def fig5():
     v = pd.read_csv(ROOT / "results/germplasm/index_out_of_fold.tsv", sep="\t")
     r = pd.read_csv(ROOT / "results/germplasm/ranking.tsv", sep="\t", index_col=0)
     g = pd.read_csv(ROOT / "results/germplasm/index_by_group.tsv", sep="\t")
@@ -674,7 +642,7 @@ def fig6():
     fs.panel(ax, "c", x=-0.2, y=1.04)
     fig.subplots_adjust(left=0.07, right=0.985, top=0.9, bottom=0.2)
     fig.align_xlabels(axs)
-    fs.save(fig, "fig6_germplasm")
+    fs.save(fig, "fig5_germplasm")
 
 
 # ---------------------------------------------------------------- Supplementary figures: association analyses
@@ -761,7 +729,7 @@ def figS2():
 
 if __name__ == "__main__":
     fs.setup()
-    todo = sys.argv[1:] or ["fig1", "fig2", "fig3", "fig4", "fig5", "fig6"]
+    todo = sys.argv[1:] or ["fig1", "fig2", "fig3", "fig4", "fig5"]
     for f in todo:
         globals()[f]()
         print(f, "done")

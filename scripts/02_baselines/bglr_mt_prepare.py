@@ -83,6 +83,7 @@ def main():
                 continue
             todo.append((json.load(open(d / "meta.json"))["n"], str(d)))
         todo.sort(reverse=True)
+        (ROOT / "jobs/lists").mkdir(parents=True, exist_ok=True)
         (ROOT / "jobs/lists" / f"bglrmt_{a.scenario}_todo.txt").write_text("".join(f"{p}\n" for _, p in todo))
         print(len(todo), "directories to fit; largest n", todo[0][0] if todo else 0)
     else:

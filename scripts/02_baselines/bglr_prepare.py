@@ -75,6 +75,7 @@ def main():
                 n = sum(1 for _ in open(d / "train_rows.txt"))
                 (big if n > BIG else small).append((n, str(d)))
         lists = ROOT / "jobs/lists"
+        lists.mkdir(parents=True, exist_ok=True)
         for name, L in (("big", big), ("small", small)):
             L.sort(reverse=True)                     # largest first, so the long ones start early in the window
             (lists / f"bglr_{a.scenario}_{name}.txt").write_text("".join(f"{p}\n" for _, p in L))

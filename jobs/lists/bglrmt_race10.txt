@@ -1,8 +1,0 @@
-/home/user/zhangzhishuai/myhermes/2080/SoyMultiRes/work/bglr_mt/cv1/fold4/Phytophthora
-/home/user/zhangzhishuai/myhermes/2080/SoyMultiRes/work/bglr_mt/cv1/fold3/Phytophthora
-/home/user/zhangzhishuai/myhermes/2080/SoyMultiRes/work/bglr_mt/cv1/fold2/Phytophthora
-/home/user/zhangzhishuai/myhermes/2080/SoyMultiRes/work/bglr_mt/cv1/fold1/Phytophthora
-/home/user/zhangzhishuai/myhermes/2080/SoyMultiRes/work/bglr_mt/cv1/fold0/Phytophthora
-/home/user/zhangzhishuai/myhermes/2080/SoyMultiRes/work/bglr_mt/cv3/unit9/Phytophthora
-/home/user/zhangzhishuai/myhermes/2080/SoyMultiRes/work/bglr_mt/cv3/unit6/Phytophthora
-/home/user/zhangzhishuai/myhermes/2080/SoyMultiRes/work/bglr_mt/cv3/unit11/Phytophthora

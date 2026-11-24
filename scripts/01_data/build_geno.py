@@ -1,6 +1,6 @@
 """Step 2 of the plan: phenotype-free genotype preparation for all 20,087 SoySNP50K accessions.
 
-usage: python build_geno.py [threads]      (run on q04/q05 with <= 7.5 GB; see jobs/slurm_build_geno.sh)
+usage: python build_geno.py [threads]      (needs about 7.5 GB of memory)
 
 Writes data/processed/geno/:
   dosage.int8       memmap int8 [n_accessions, n_snps], ALT dosage 0/1/2; the 0.0x% missing calls set to the major

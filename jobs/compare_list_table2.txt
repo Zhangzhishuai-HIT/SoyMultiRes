@@ -1,3 +1,0 @@
-cv1 mtboost_v2_final gblup other
-cv1 mtboost_v2_final bayesb primary
-cv1 mtboost_v2_final bayesb other

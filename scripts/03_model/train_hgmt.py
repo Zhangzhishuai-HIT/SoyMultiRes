@@ -269,7 +269,7 @@ def main():
     ap.add_argument("--stage", default="AB", choices=["A", "AB"])
     ap.add_argument("--seeds", default="0,1,2,3,4", help="stage-B seeds (stage A uses the first one)")
     ap.add_argument("--threads", type=int, default=8)
-    ap.add_argument("--device", default="auto", help="auto | cpu | cuda (gpu10 card 0 only, selected by UUID)")
+    ap.add_argument("--device", default="auto", help="auto | cpu | cuda")
     ap.add_argument("--gpu_mem_gb", type=float, default=7.0, help="per-process cap on the GPU")
     a = ap.parse_args()
     dev = data.RUNS / a.scenario / DEV

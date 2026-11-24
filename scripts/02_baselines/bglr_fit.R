@@ -8,7 +8,7 @@ fold_dir <- args[1]
 model <- if (length(args) >= 2) args[2] else "BayesB"
 n_iter <- if (length(args) >= 3) as.integer(args[3]) else 12000L
 burn_in <- if (length(args) >= 4) as.integer(args[4]) else 2000L
-root <- "/home/user/zhangzhishuai/myhermes/2080/SoyMultiRes/data/processed/geno"
+root <- file.path(getwd(), "data/processed/geno")   # run from the project root
 meta <- paste(readLines(file.path(root, "dosage.json"), warn = FALSE), collapse = "")
 p <- as.integer(sub('.*"shape": \\[[0-9]+, ([0-9]+)\\].*', "\\1", meta))
 offset <- as.numeric(sub('.*"offset": ([0-9]+).*', "\\1", meta))

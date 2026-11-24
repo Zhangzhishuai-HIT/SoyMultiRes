@@ -7,7 +7,7 @@ fold g, per-trait early stopping on g (held-out r, checked every 25 rounds). Sta
 number of rounds, predictions for the eval set (inner fold f). Writes runs/cv1_inner/mtgbm_probe/<split>.<group>.tsv.gz
 (records with pred_mt, pred_st) and prints per-trait primary metrics next to the cv1_inner baselines.
 
-usage (q04/q05 CPU: vector-leaf trees are CPU-only in XGBoost 3.0.5): python mtgbm_probe.py --fold 0 [--groups scn,pr] [--depth 4] [--eta 0.05]
+usage (CPU: vector-leaf trees are CPU-only in XGBoost 3.0.5): python mtgbm_probe.py --fold 0 [--groups scn,pr] [--depth 4] [--eta 0.05]
 """
 import argparse
 import json

@@ -1,2 +1,0 @@
-BPMV 0 cv3
-NSCANKER 8 cv3

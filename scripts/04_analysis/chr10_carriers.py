@@ -1,5 +1,5 @@
 """Origin, GRIN source type and resistance to SCN race 3 of the accessions carrying the alternative allele of the
-chromosome 10 lead SNP (ss715606985) of the race-differential locus (Supplementary Note 4).
+chromosome 10 lead SNP (ss715606985) of the race-differential locus.
 
 usage: python -I chr10_carriers.py
 Carriers are the accessions homozygous for the alternative allele (dosage 2), non-carriers those homozygous for the
@@ -9,7 +9,8 @@ accession resistant in at least one experiment (data/processed/resistant_matrix.
 G. max accessions by origin (countries with at least ten carriers) and for all G. max accessions.
 Writes results/loci/chr10_carriers.tsv, and results/loci/chr10_conditional.tsv: z (signed square root of the
 association statistic) of SCN races 1, 3, 5 and 14 at the lead SNP in the main analysis and with the five SNPs of
-jobs/r11_cond_chr10.sh as fixed effects (results/gwas/emmax_stress_condscn.npz; Supplementary Note 4).
+COND_SNPS as fixed effects (results/gwas/emmax_stress_condscn.npz, from gwas_emmax.py --traitset stress --tag _condscn
+--condition_snps "NEMATCYST_1,NEMATCYST_3,NEMATCYST_5,NEMATCYST_14:" + the SNPs of COND_SNPS).
 """
 import sys
 from pathlib import Path
@@ -65,11 +66,14 @@ def main():
     conditional(snps, j)
 
 
+# SNPs fitted as fixed effects in the run with --tag _condscn: the SNPs most correlated with the chromosome 10 lead SNP
+# on chromosomes 7 (NSF), 18 (lead SNP of the chromosome 18 locus) and 11 (near GmSNAP11), and the lead SNPs near Rhg1 and Rhg4
+COND_SNPS = ("ss715597431", "ss715628625", "ss715610396", "ss715629273", "ss715602753")
+
+
 def conditional(snps, j):
-    """z of SCN races 1, 3, 5 and 14 at the lead SNP without and with the five SNPs of jobs/r11_cond_chr10.sh as fixed
-    effects (the SNPs are read from the job file, so that the table names what was fitted)."""
-    job = (ROOT / "jobs/r11_cond_chr10.sh").read_text()
-    fixed = job.split("--condition_snps")[1].split('"')[1].split(":")[1].split(",")
+    """z of SCN races 1, 3, 5 and 14 at the lead SNP without and with the five SNPs of COND_SNPS as fixed effects."""
+    fixed = list(COND_SNPS)
     rows = []
     for tag, f in (("main analysis", "emmax_stress.npz"), ("five SNPs fitted", "emmax_stress_condscn.npz")):
         z = np.load(ROOT / "results/gwas" / f, allow_pickle=True)
