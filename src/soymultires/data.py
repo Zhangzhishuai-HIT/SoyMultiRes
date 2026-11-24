@@ -115,7 +115,7 @@ def split_sets(scenario: str, f: int, fo: pd.DataFrame | None = None):
         outer_train = fo.cv1_fold != f
         return outer_train & (fo.inner_fold != f), outer_train & (fo.inner_fold == f)
     if scenario == "cv3":
-        # 考法三, strict for multi-trait models: the held-out batch's accessions leave training entirely (every
+        # held-out experiments, strict for multi-trait models: the held-out batch's accessions leave training entirely (every
         # trait); test = the records of the unit's chosen traits in that batch (cv3_batches.tsv, chosen_for)
         ev = fo.index.isin(cv3_test_accessions(f))
         return pd.Series(~ev, index=fo.index), pd.Series(ev, index=fo.index)

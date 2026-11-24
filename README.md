@@ -47,20 +47,22 @@ Run from the repository root. The model reads
 - `data/processed/pheno_long.tsv.gz`: one row per accession, trait and experiment (columns `acc`, `trait`, `batch`,
   `score`, `resistant`; higher scores mean higher resistance);
 - `data/processed/geno/dosage.npy` (accessions × SNPs, allele dosages 0/1/2), `data/processed/geno/samples.tsv`
-  (column `vcf_id`, in the row order of the dosages) and `data/processed/geno/grm.f32.npy` (genomic relationship
-  matrix);
+  (column `vcf_id`: the accession identifiers used in `acc`, in the row order of the dosages) and
+  `data/processed/geno/grm.f32.npy` (genomic relationship matrix);
 - `splits/folds.tsv` (columns `acc`, `cv1_fold`, `inner_fold`) and, for held-out experiments, `splits/cv3_batches.tsv`
   (columns `unit`, `batch`, `chosen_for`).
 
 ## Usage
 
-    python scripts/03_model/train_mtboost.py start   --scenario cv1 --fold 0            # GBLUP starting values (CPU)
-    python scripts/03_model/train_mtboost.py fit     --scenario cv1 --fold 0 --tag v2    # tuning, choice and refits
-    python scripts/03_model/train_mtboost.py collect --scenario cv1 --tag v2             # predictions of all folds
+    python scripts/03_model/train_mtboost.py start   --scenario cv1 --fold 0             # GBLUP starting values (CPU)
+    python scripts/03_model/train_mtboost.py fit     --scenario cv1 --fold 0 --tag main  # tuning, choice and refits
+    python scripts/03_model/train_mtboost.py collect --scenario cv1 --tag main           # predictions of all folds
 
-Scenarios: `cv1` (five-fold cross-validation), `cv3` (held-out experiments) and `all` (model fitted to all accessions).
-Predictions are written to `runs/<scenario>/mtboost_<tag>_final/`; `reseed` adds refits with further random seeds and
-writes the split gains of the SNPs.
+Scenarios: `cv1` (five-fold cross-validation, folds 0–4), `cv3` (held-out experiments, one split per experiment) and
+`all` (model fitted to all accessions, `--fold 0`). For `cv1` and `cv3`, `fit` writes one result per split to
+`runs/<scenario>/mtboost_dev/<tag>/`, and `collect` combines them into `runs/<scenario>/mtboost_<tag>_final/`;
+`reseed` adds refits with further random seeds. For `all`, `fit` writes the predictions and the split gains of the
+SNPs for every trait to `runs/all/mtboost_<tag>/`.
 
 ## Licence
 

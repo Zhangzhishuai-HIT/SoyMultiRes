@@ -3,15 +3,15 @@ refits and split gains.
 
 usage:
   python train_mtboost.py start   --scenario cv1 --fold 0                       GBLUP predictions used as a start (CPU)
-  python train_mtboost.py fit     --scenario cv1 --fold 0 --tag v2 [--trials 15]   tuning, choice and refits (GPU)
-  python train_mtboost.py reseed  --scenario cv1 --fold 0 --tag v2 --first_seed 2 --seeds 2    further refits
+  python train_mtboost.py fit     --scenario cv1 --fold 0 --tag main [--trials 15]   tuning, choice and refits (GPU)
+  python train_mtboost.py reseed  --scenario cv1 --fold 0 --tag main --first_seed 2 --seeds 2    further refits
   python train_mtboost.py reseed  --scenario all --fold 0 --tag final --first_seed 0 --seeds 2  split gains of the
                                                                                  model fitted to all accessions
   python train_mtboost.py start   --scenario cv1 --fold 0 --eval_all          GBLUP predictions of every trait for all
                                                                             test accessions (CPU; used by --dump_full)
-  python train_mtboost.py reseed  --scenario cv1 --fold 0 --tag v2 --first_seed 0 --seeds 2 --dump_full
+  python train_mtboost.py reseed  --scenario cv1 --fold 0 --tag main --first_seed 0 --seeds 2 --dump_full
                                                              predictions of all traits for the test accessions (<split>_full.npz)
-  python train_mtboost.py collect --scenario cv1 --tag v2      -> runs/<scenario>/mtboost_<tag>{_final,_noshare4,_gblup,...}/
+  python train_mtboost.py collect --scenario cv1 --tag main      -> runs/<scenario>/mtboost_<tag>{_final,_noshare4,_gblup,...}/
 Scenarios: cv1_inner, cv1 (new accessions), cv3 (held-out experiments), all (all accessions).
 Per split (fit):
   1. targets as for the other models (data.split_targets); rows = training accessions with any record; the test rows
@@ -55,11 +55,6 @@ from soymultires.reml import SpectralREML  # noqa: E402
 CODE = hashlib.sha256(Path(__file__).read_bytes() + (ROOT / "src/soymultires/mtboost.py").read_bytes()).hexdigest()[:16]
 TRAITS = list(T.TRAITS)
 CATEGORY = {row[0]: row[4] for row in T.STRESS}
-def use_traitset(name):
-    """The 33 stress traits (pheno_long)."""
-    return data.pheno_long()
-
-
 def units(groups):
     """(unit_of (T,), U) for the shared trees."""
     if groups in ("all", "none"):
@@ -439,7 +434,7 @@ def main():
         out_all = data.RUNS / "all" / f"mtboost_{a.tag}"
         sp = data.split_name(a.scenario, a.fold) if a.scenario != "all" else "all"
         js = json.load(open(out_all / "run.json" if a.scenario == "all" else dev_dir / f"{sp}.json"))
-        sd = SplitData(a.scenario, a.fold, device, log, long=use_traitset("stress"))
+        sd = SplitData(a.scenario, a.fold, device, log, long=data.pheno_long())
         S0, S0e = sd.gblup_start(log)
         if a.dump_full:                       # every test accession needs the GBLUP start of every trait
             S0e_all = sd.gblup_eval_all(log)
@@ -511,7 +506,7 @@ def main():
     if a.mode == "start":                     # GBLUP starts on the CPU, cached for the GPU runs
         t0 = time.time()
         log = lambda s: print(f"[{time.time() - t0:7.0f}s] {s}", flush=True)  # noqa: E731
-        sd = SplitData(a.scenario, a.fold, torch.device("cpu"), log, long=use_traitset("stress"))
+        sd = SplitData(a.scenario, a.fold, torch.device("cpu"), log, long=data.pheno_long())
         sd.gblup_eval_all(log) if a.eval_all else sd.gblup_start(log)
         return
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -520,7 +515,7 @@ def main():
         torch.cuda.set_per_process_memory_fraction(min(1.0, a.gpu_mem_gb / tot), 0)
     t0 = time.time()
     log = lambda s: print(f"[{time.time() - t0:7.0f}s] {s}", flush=True)  # noqa: E731
-    sd = SplitData(a.scenario, a.fold, device, log, long=use_traitset("stress"))
+    sd = SplitData(a.scenario, a.fold, device, log, long=data.pheno_long())
     S0, S0e = sd.gblup_start(log)
     S0s = torch.as_tensor((S0 - sd.mu) / sd.sd, dtype=torch.float32, device=device)
     S0es = torch.as_tensor((S0e - sd.mu) / sd.sd, dtype=torch.float32, device=device)
@@ -565,7 +560,7 @@ def main():
         np.savez_compressed(out / "predictions.npz", **arrs)
         np.savez_compressed(out / "importance.npz", shared=imp_s.astype(np.float32), own=imp_p.astype(np.float32),
                             model=imp_m.astype(np.float32), traits=np.array(TRAITS))
-        json.dump({"scenario": "all", "traitset": "stress", "tag": a.tag, "code": CODE, "trials": trials,
+        json.dump({"scenario": "all", "tag": a.tag, "code": CODE, "trials": trials,
                    "configs": {k: choices[k][0].__dict__ for k in sorted(set(pick))}, "per_trait": per_trait,
                    "seconds": round(time.time() - t0, 1)}, open(out / "run.json", "w"), indent=1, default=float)
         log(f"done: predictions for {len(sd.E)} accessions -> {out}")

@@ -1,4 +1,3 @@
-# Spectral REML for GBLUP, from the HapGAM repository (https://github.com/Zhangzhishuai-HIT/HapGAM).
 """Kernel mixed models fitted by REML (spectral / FaST-LMM formulation) in torch.
 
 y = Xb + g + e,  g ~ N(0, s2g K),  e ~ N(0, s2e I),  delta = s2e / s2g.
@@ -11,24 +10,6 @@ import math
 
 import numpy as np
 import torch
-
-
-def vanraden_kernel(Z_a: torch.Tensor, Z_b: torch.Tensor | None = None, scale: float | None = None):
-    """Linear kernel Z_a Z_b^T / scale for centred genotype matrices."""
-    if Z_b is None:
-        Z_b = Z_a
-    if scale is None:
-        scale = Z_a.shape[1]
-    return (Z_a @ Z_b.T) / scale
-
-
-def center_genotypes(X_train: torch.Tensor, X_other=None):
-    """Centre (and return allele means) using training allele frequencies only."""
-    mu = X_train.mean(0, keepdim=True)
-    Zt = X_train - mu
-    if X_other is None:
-        return Zt, mu
-    return Zt, X_other - mu, mu
 
 
 class SpectralREML:
@@ -109,20 +90,3 @@ class SpectralREML:
         """In-sample BLUP fitted values (fixed + random)."""
         K_alpha = self.U @ (self.s * (self.U.T @ self.alpha))
         return self.X @ self.beta + K_alpha
-
-
-def select_epi_weight(Ka: torch.Tensor, Kaa: torch.Tensor, y: torch.Tensor,
-                      weights=(0.0, 0.25, 0.5, 0.75, 1.0), n_sub: int = 4000, seed: int = 0):
-    """REML choice of w in (1-w)K_A + wK_AA on a fixed random subsample of individuals.
-
-    Used identically by the EGBLUP baseline and HapGAM-E so that HapGAM-E with M = 0 is
-    exactly EGBLUP.  Returns (w, {w: loglik}).
-    """
-    n = Ka.shape[0]
-    g = torch.Generator().manual_seed(seed)
-    idx = torch.randperm(n, generator=g)[: min(n, n_sub)].to(Ka.device)
-    A, AA, ys = Ka[idx][:, idx], Kaa[idx][:, idx], y[idx]
-    table = {}
-    for w in weights:
-        table[w] = SpectralREML().fit((1 - w) * A + w * AA, ys).loglik
-    return max(table, key=table.get), table
